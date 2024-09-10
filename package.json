@@ -1,0 +1,20 @@
+{
+    "name": "vue3-ciallo-image-viewer",
+    "version": "1.0.0",
+    "main": "index.js",
+    "files": [
+        "src"
+    ],
+    "scripts": {
+        "build": "vite build"
+    },
+    "peerDependencies": {
+        "vue": "^3.0.0"
+    },
+    "description": "图片浏览插件",
+    "directories": {
+        "lib": "lib"
+    },
+    "author": "arilo",
+    "license": "ISC"
+}
