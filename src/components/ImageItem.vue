@@ -1,11 +1,13 @@
 <template>
     <img
+        class="item-img"
         :src="props.src"
         :style="imageStyle"
         ref="instance"
         @load="handleLoad" />
 </template>
 <script setup>
+import '../assets/scss/ImageItem.scss'
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 const props = defineProps({
     src: {
@@ -99,13 +101,3 @@ watch(() => [props.x, props. y], e => {
     })
 })
 </script>
-<style lang="scss" scoped>
-img {
-    position: absolute;
-    -webkit-user-drag: none;
-    cursor: grab;
-    opacity: 0;
-    transform: scale(0);
-    will-change: width, height, opacity, transform;
-}
-</style>

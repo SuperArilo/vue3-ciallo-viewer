@@ -63,6 +63,7 @@
     </Transition>
 </template>
 <script setup>
+import '../assets/scss/ImageView.scss'
 import ImageItem from './ImageItem.vue'
 import { nextTick, ref, computed, watch } from 'vue'
 const props = defineProps({
@@ -258,67 +259,3 @@ const transition = computed(() => (list = []) => {
 watch(() => props.targetIndex, e => targetIndex.value = e)
 watch(() => props.open, e => openStatus.value = e)
 </script>
-<style lang="scss" scoped>
-.image-view-mask {
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    left: 0;
-    top: 0;
-    z-index: 10000;
-    user-select: none;
-    will-change: background-color, opacity, transform;
-    .image-list {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        flex-wrap: nowrap;
-        will-change: transform;
-        margin: 0;
-        padding: 0;
-        li {
-            width: 100%;
-            height: 100%;
-            list-style: none;
-            flex: none;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-    }
-    .top-function {
-        width: 100%;
-        height: 42px;
-        position: absolute;
-        right: 0;
-        top: 0;
-        display: flex;
-        justify-content: space-between;
-        .close {
-            width: 42px;
-            height: inherit;
-            position: relative;
-            z-index: 1;
-            cursor: pointer;
-        }
-        .close::before, .close::after {
-            content: '';
-            display: block;
-            left: 50%;
-            top: 50%;
-            position: absolute;
-            background-color: #fff;
-            width: 70%;
-            height: 2px;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        .close::before {
-            transform: translate(-50%, -50%) rotate(45deg);
-        }
-        .close::after {
-            transform: translate(-50%, -50%) rotate(-45deg);
-        }
-    }
-}
-</style>

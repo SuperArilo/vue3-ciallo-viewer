@@ -1,0 +1,8 @@
+.item-img {
+    position: absolute;
+    -webkit-user-drag: none;
+    cursor: grab;
+    opacity: 0;
+    transform: scale(0);
+    will-change: width, height, opacity, transform;
+}
