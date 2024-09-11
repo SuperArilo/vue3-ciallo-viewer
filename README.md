@@ -18,6 +18,17 @@ npm install vue3-ciallo-viewer --save
 |duration|Number|300|Transition duration in milliseconds.|
 |targetIndex|Number|0|Index of the currently displayed image.|
 
+## Events
+
+| Name| Description|
+| --- | --- |
+|open|Executed when the viewer is activated|
+|close|Executed when the viewer is closed|
+|prev|Triggered when navigating to the previous image|
+|next|Triggered when navigating to the next image|
+
+
+
 ## Basic usage
 
 ```
