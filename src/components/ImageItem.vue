@@ -46,37 +46,23 @@ const handleLoad = () => {
 }
 //设置图片的宽高
 const handleResize = (): void => {
-    if(instance.value == null) return
-    const tt = {
-        width: '',
-        height: ''
-    }
-    const imageWidth = instance.value.naturalWidth
-    const imageHeight = instance.value.naturalHeight
-    const screenWidth = document.body.clientWidth
-    const screenHeight = document.body.clientHeight
-    // 计算图片的宽高比
-    const aspectRatio = imageWidth / imageHeight
-
-    // 如果图片宽度或高度超出屏幕
-    if (imageWidth > screenWidth * 0.9 || imageHeight > screenHeight * 0.9) {
-        // 如果宽高比大于屏幕宽高比，按宽度缩放
-        if (screenWidth / screenHeight < aspectRatio) {
-            tt.width = `${screenWidth * 0.9}px`
-            tt.height = `${(screenWidth * 0.9) / aspectRatio}px`
-        } else {
-            // 否则按高度缩放
-            tt.height = `${screenHeight * 0.9}px`
-            tt.width = `${(screenHeight * 0.9) * aspectRatio}px`
-        }
+    if (instance.value == null) return
+    const aspectRatio = instance.value.naturalWidth / instance.value.naturalHeight
+    const maxWidth = window.innerWidth * 0.8
+    const maxHeight = window.innerHeight * 0.8
+    let newWidth, newHeight
+    if (maxWidth / aspectRatio <= maxHeight) {
+        newWidth = maxWidth
+        newHeight = maxWidth / aspectRatio
     } else {
-        // 图片不超出屏幕，使用图片原始宽高
-        tt.width = `${imageWidth}px`
-        tt.height = `${imageHeight}px`
+        newHeight = maxHeight
+        newWidth = maxHeight * aspectRatio
     }
-    imageStyle.value.width = tt.width
-    imageStyle.value.height = tt.height
+    imageStyle.value.width = `${newWidth}px`
+    imageStyle.value.height = `${newHeight}px`
 }
+
+
 onMounted(() => {
     window.addEventListener('resize', handleResize)
 })
