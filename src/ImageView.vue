@@ -49,18 +49,18 @@
 import './assets/scss/ImageView.scss'
 import ImageItem from './components/ImageItem.vue'
 import {nextTick, ref, computed, watch, onMounted, onBeforeUnmount} from 'vue'
-import {BoundaryPosition, ImageViewProps} from "./type/Types"
+import {BoundaryPosition, ImageViewProps, ViewerChangeEvents} from "./type/Types"
 const props = withDefaults(defineProps<ImageViewProps>(), {
     open: false,
     images: () => [],
     duration: 300,
     targetIndex: 0
 })
+const emits = defineEmits<ViewerChangeEvents>()
 const openStatus = ref<Boolean>(props.open)
 const imageUl = ref(null)
 const mask = ref<HTMLElement | null>(null)
 const images = ref<Array<string>>(props.images)
-const emits = defineEmits(['close'])
 //通知关闭的状态
 const closeStatus = ref(false)
 //鼠标是否按下
@@ -241,9 +241,11 @@ const publicHandleUp = (): void => {
         mask.value.style.backgroundColor = maskBackgroundColor.value(1)
         if(boundaryPosition.value.x.movement !== null && boundaryPosition.value.x.movement < 0 && targetIndex.value >= 0 && props.images.length > 0 && targetIndex.value + 1 < props.images.length) {
             targetIndex.value++
+            emits('next', targetIndex.value)
         //上一张
         } else if(boundaryPosition.value.x.movement !== null && boundaryPosition.value.x.movement > 0 && targetIndex.value > 0) {
             targetIndex.value--
+            emits('prev', targetIndex.value)
         } else {
             restoreStatus()
         }
@@ -269,7 +271,12 @@ const transition = computed(() => (list: string[] = []) => {
 })
 //动态更新目标index
 watch(() => props.targetIndex, e => targetIndex.value = e)
-watch(() => props.open, e => openStatus.value = e)
+watch(() => props.open, e => {
+    openStatus.value = e
+    if(e) {
+        emits('open', null)
+    }
+})
 watch(() => props.images, e => {
     images.value = e
     if(e.length <= targetIndex.value) {

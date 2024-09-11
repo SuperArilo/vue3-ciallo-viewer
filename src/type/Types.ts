@@ -20,3 +20,9 @@ interface BoundaryStatus {
     status: boolean | null
     movement: number  | null
 }
+export interface ViewerChangeEvents {
+    (e: 'open', payload: null): void
+    (e: 'close', payload: null): void
+    (e: 'prev', payload: number): void
+    (e: 'next', payload: number): void
+}
