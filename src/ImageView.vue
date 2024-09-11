@@ -208,12 +208,7 @@ const restoreStatus = () => {
 }
 //检查鼠标是否移动到文档外
 const handleIsMouseOverWindow = (e: MouseEvent | TouchEvent): void => {
-    const isOutside =
-        (e instanceof MouseEvent &&
-            (e.clientY < 0 || e.clientY > window.innerHeight || e.clientX < 0 || e.clientX > window.innerWidth)) ||
-        (e instanceof TouchEvent && e.touches.length === 0)
-
-    if (isOutside) {
+    if(e instanceof MouseEvent && (e.clientY < 0 || e.clientY > window.innerHeight || e.clientX < 0 || e.clientX > window.innerWidth)) {
         commitClose()
     }
 }
@@ -243,9 +238,7 @@ const publicHandleUp = (): void => {
         afterOffset.value.x = 0
         afterOffset.value.y = 0
         //切换下一张
-        if(mask.value !== null) {
-            mask.value.style.backgroundColor = maskBackgroundColor.value(1)
-        }
+        mask.value.style.backgroundColor = maskBackgroundColor.value(1)
         if(boundaryPosition.value.x.movement !== null && boundaryPosition.value.x.movement < 0 && targetIndex.value >= 0 && props.images.length > 0 && targetIndex.value + 1 < props.images.length) {
             targetIndex.value++
         //上一张
