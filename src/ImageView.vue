@@ -238,7 +238,9 @@ const publicHandleUp = (): void => {
         afterOffset.value.x = 0
         afterOffset.value.y = 0
         //切换下一张
-        mask.value.style.backgroundColor = maskBackgroundColor.value(1)
+        if(mask.value !== null) {
+            mask.value.style.backgroundColor = maskBackgroundColor.value(1)
+        }
         if(boundaryPosition.value.x.movement !== null && boundaryPosition.value.x.movement < 0 && targetIndex.value >= 0 && props.images.length > 0 && targetIndex.value + 1 < props.images.length) {
             targetIndex.value++
             emits('next', targetIndex.value)
