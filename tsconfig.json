@@ -1,0 +1,30 @@
+{
+    "compilerOptions": {
+      "allowJs": true,
+      "emitDeclarationOnly": true,
+      "incremental": true,
+      "module": "NodeNext",
+      "declaration": true,
+      "declarationMap": true,
+      "outDir": "dist",
+      "strict": true,
+      "rootDir": "src",
+      "target": "ESNext",
+      "lib": ["DOM", "DOM.Iterable", "ESNext"],
+      "skipLibCheck": true,
+      "strictNullChecks": true,
+      "esModuleInterop": true,
+      "experimentalDecorators": true,
+      "allowSyntheticDefaultImports": true,
+      "forceConsistentCasingInFileNames": true,
+      "moduleResolution": "NodeNext",
+      "noImplicitReturns": true,
+      "noUnusedLocals": true,
+      "noImplicitAny": true,
+      "resolveJsonModule": true,
+      "isolatedModules": true,
+
+      "noEmitOnError": true
+    },
+    "include": ["src"]
+  }
