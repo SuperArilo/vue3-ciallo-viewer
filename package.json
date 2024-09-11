@@ -5,6 +5,7 @@
     "main": "vue3-ciallo-viewer.mjs",
     "module": "dist/vue3-ciallo-viewer.umd.js",
     "types": "./dist/index.d.ts",
+    "repository": "https://github.com/SuperArilo/vue3-ciallo-viewer.git",
     "keywords": [
         "vue3",
         "image-viewer",
