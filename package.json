@@ -24,12 +24,6 @@
     "peerDependencies": {
         "vue": "^3.0.0"
     },
-    "devDependencies": {
-        "sass": "^1.78.0",
-        "sass-loader": "^16.0.1",
-        "vue-tsc": "^2.0.29",
-        "typescript": "^5.5.3"
-    },
     "files": [
         "dist",
         "package.json",
