@@ -1,6 +1,7 @@
 # vue3-ciallo-viewer
 
 **An exquisite vue3 image preview component.**
+**Mobile device support** ✔
 
 ## Install
 
