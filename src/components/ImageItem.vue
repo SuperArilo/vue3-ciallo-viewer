@@ -1,57 +1,55 @@
 <template>
     <img
         class="item-img"
-        :src="props.src"
+        :src="src"
         :style="imageStyle"
         ref="instance"
-        @load="handleLoad" />
+        @load="handleLoad"
+        @error="(e: Event) => {
+            (e.target as HTMLImageElement).src = errorPng
+        }"
+        alt="viewer"/>
 </template>
-<script setup>
+<script setup lang="ts">
 import '../assets/scss/ImageItem.scss'
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
-const props = defineProps({
-    src: {
-        type: String,
-        required: true
-    },
-    closeStatus: {
-        type: Boolean,
-        default: true
-    },
-    duration: {
-        type: Number,
-        default: 300
-    },
-    x: {
-        type: Number,
-        default: 0
-    },
-    y: {
-        type: Number,
-        default: 0
-    }
+import {ref, watch, onMounted, onBeforeUnmount, CSSProperties} from 'vue'
+import {ImageItemProps} from "../type/Types"
+import { errorPng } from "../util/PublicData"
+const props = withDefaults(defineProps<ImageItemProps>(), {
+    closeStatus: true,
+    duration: 300,
+    x: 0,
+    y: 0
 })
-const instance = ref(null)
+const src = ref<string>(props.src)
+const instance = ref<HTMLImageElement | null>(null)
 const transition = {
     opacity: `opacity ${props.duration}ms`,
     transform: `transform ${props.duration}ms`
 }
-const imageStyle = ref({})
+const imageStyle = ref<CSSProperties>({
+    opacity: '',
+    transition: '',
+    transform: '',
+    width: '',
+    height: ''
+})
 //图片加载完成
 const handleLoad = () => {
     handleResize()
     window.requestAnimationFrame(() => {
-        imageStyle.value.opacity = 1
+        imageStyle.value.opacity = '1'
         imageStyle.value.transition = `${transition.opacity}, ${transition.transform}`
         imageStyle.value.transform = 'scale(1)'
     })
-    setTimeout(() => imageStyle.value.transition = null, props.duration)
+    setTimeout(() => imageStyle.value.transition = '', props.duration)
 }
 //设置图片的宽高
-const handleResize = e => {
+const handleResize = (): void => {
+    if(instance.value == null) return
     const tt = {
-        width: null,
-        height: null
+        width: '',
+        height: ''
     }
     const imageWidth = instance.value.naturalWidth
     const imageHeight = instance.value.naturalHeight
@@ -88,16 +86,15 @@ onBeforeUnmount(() => {
 })
 watch(() => props.closeStatus, e => {
     if(e) {
-        imageStyle.value.transform = null
-        imageStyle.value.opacity = 0
+        imageStyle.value.transform = ''
+        imageStyle.value.opacity = '0'
         imageStyle.value.transition = `${transition.opacity}, ${transition.transform}`
     }
 })
 watch(() => [props.x, props. y], e => {
     window.requestAnimationFrame(() => {
         imageStyle.value.transform = `scale(1) translate(${e[0]}px, ${e[1]}px)`
-        imageStyle.value.opacity = 1
-        imageStyle.value.transition = e[0] === 0 && e[1] === 0 ? `${transition.opacity}, ${transition.transform}` : null
+        imageStyle.value.transition = e[0] === 0 && e[1] === 0 ? `${transition.opacity}, ${transition.transform}` : ''
     })
 })
 </script>

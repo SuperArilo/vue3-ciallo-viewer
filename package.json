@@ -1,13 +1,19 @@
 {
-    "name": "vue3-ciallo-image-viewer",
+    "name": "vue3-ciallo-viewer",
     "version": "1.0.0",
     "description": "适用于vue3的图片浏览组件",
+    "main": "vue3-ciallo-viewer.mjs",
+    "module": "dist/vue3-ciallo-viewer.umd.js",
+    "types": "./dist/index.d.ts",
     "keywords": [
         "vue3",
         "image-viewer",
+        "img-viewer",
+        "img",
+        "image",
         "viewer",
         "ciallo",
-        "vue3-ciallo-image-viewer"
+        "vue3-ciallo-viewer"
     ],
     "scripts": {
         "build": "vite build",
@@ -18,7 +24,9 @@
     },
     "devDependencies": {
         "sass": "^1.78.0",
-        "sass-loader": "^16.0.1"
+        "sass-loader": "^16.0.1",
+        "vue-tsc": "^2.0.29",
+        "typescript": "^5.5.3"
     },
     "files": [
         "dist",
@@ -26,7 +34,5 @@
         "LICENSE"
     ],
     "author": "arilo",
-    "license": "ISC",
-    "main": "./dist/ciallo.umd.js",
-    "module": "./dist/ciallo.es.js"
+    "license": "ISC"
 }
