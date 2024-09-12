@@ -7,22 +7,21 @@
             class="image-view-mask"
             ref="mask"
             v-if="openStatus"
-            @touchstart="(e: TouchEvent): void => {
-                e.preventDefault()
+            @touchstart.passive="(e: TouchEvent): void => {
                 if((e.target as HTMLElement).localName === 'img') {
                     prePosition.x = e.touches[0].clientX
                     prePosition.y = e.touches[0].clientY
                     isMouseDown = true
                 }
             }"
-            @touchmove.prevent="handleTouchMove"
-            @touchend="publicHandleUp"
+            @touchmove.passive="handleTouchMove"
+            @touchend.passive="publicHandleUp"
             @mousedown="handleMouseDown"
             @mouseup="publicHandleUp"
             @mousemove="handleMouseMove">
                 <div class="top-function">
                     <span></span>
-                    <div class="close" @click="commitClose" @touchstart="commitClose"></div>
+                    <div class="close" @click="commitClose" @touchstart.passive="commitClose"></div>
                 </div>
                 <ul
                     class="image-list"
@@ -39,7 +38,7 @@
                             :y="targetIndex == index ? afterOffset.y:0"
                             :duration="props.duration"
                             :src="item"
-                            :closeStatus="closeStatus" />
+                            :closeStatus="targetIndex == index && closeStatus" />
                     </li>
                 </ul>
         </div>
@@ -49,6 +48,7 @@
 import './assets/scss/ImageView.scss'
 import ImageItem from './components/ImageItem.vue'
 import {nextTick, ref, computed, watch, onMounted, onBeforeUnmount} from 'vue'
+import {BuildTransition} from './util/PublicFunction'
 import {BoundaryPosition, ImageViewProps, ViewerChangeEvents} from "./type/Types"
 const props = withDefaults(defineProps<ImageViewProps>(), {
     open: false,
@@ -96,19 +96,20 @@ const beforeEnter = (element: Element): void => {
 }
 const afterEnter = (element: Element): void => {
     if(element instanceof HTMLElement) {
-        element.style.transition = transition.value(['opacity', 'background-color'])
+        element.style.transition = BuildTransition.value(['opacity', 'background-color'], props.duration)
         element.style.opacity = '1'
         element.style.backgroundColor = maskBackgroundColor.value(1)
     }
 }
 const beforeLeave = (element: Element): void => {
     if(element instanceof HTMLElement) {
-        element.style.transition = transition.value(['opacity'])
+        element.style.transition = BuildTransition.value(['opacity'], props.duration)
         element.style.opacity = '0'
     }
 }
 const handleMouseDown = (e: MouseEvent): void => {
-    if((e.target as HTMLElement).localName === 'img') {
+    const target = e.target as HTMLElement
+    if(target.localName === 'img' ) {
         prePosition.x = e.x
         prePosition.y = e.y
         isMouseDown.value = true
@@ -139,18 +140,19 @@ const handleMouseMove = (e: MouseEvent): void => {
     const xRatio = Math.abs(newX) / maxXOffset
 
     //触发切换图片的时候判断鼠标作用的是否是图片上
-    if((e.target as HTMLElement).localName == 'img') {
+    const target = e.target as HTMLElement
+    if(target.localName == 'img') {
         //记录movement
         boundaryPosition.value.y.movement = e.movementY
         boundaryPosition.value.x.movement = e.movementX
         // 判断是否达到边界
         boundaryPosition.value.y.status = yRatio >= 0.3 && xRatio <= 0.1
         boundaryPosition.value.x.status = xRatio >= 0.1 && yRatio <= 0.1
+        window.requestAnimationFrame(() => {
+            if(mask.value == null) return
+            mask.value.style.backgroundColor = maskBackgroundColor.value(1 - yRatio)
+        })
     }
-    window.requestAnimationFrame(() => {
-        if(mask.value == null) return
-        mask.value.style.backgroundColor = maskBackgroundColor.value(1 - yRatio)
-    })
     afterOffset.value.x = newX
     afterOffset.value.y = newY
     
@@ -201,7 +203,7 @@ const restoreStatus = () => {
         afterOffset.value.x = 0
         afterOffset.value.y = 0
         if(mask.value) {
-            mask.value.style.transition = transition.value(['background-color'])
+            mask.value.style.transition = BuildTransition.value(['background-color'], props.duration)
             mask.value.style.backgroundColor = maskBackgroundColor.value(1)
         }
     })
@@ -216,9 +218,7 @@ onMounted(() => {
     document.addEventListener('mouseup', handleIsMouseOverWindow)
     document.addEventListener('touchend', handleIsMouseOverWindow)
 })
-onBeforeUnmount(() => {
-    document.removeEventListener('mouseup', handleIsMouseOverWindow)
-})
+onBeforeUnmount(() => document.removeEventListener('mouseup', handleIsMouseOverWindow))
 //提交关闭
 const commitClose = () => {
     closeStatus.value = true
@@ -263,14 +263,6 @@ const publicHandleUp = (): void => {
 }
 //返回mask的背景颜色设置
 const maskBackgroundColor = computed(() => (value: Number): string => `rgba(0, 0, 0, ${value})`)
-//构建 transition
-const transition = computed(() => (list: string[] = []) => {
-    let transitions: string[] = []
-    list.forEach(e => {
-        transitions.push(`${e} ${props.duration}ms ease`)
-    })
-    return transitions.join(', ')
-})
 //动态更新目标index
 watch(() => props.targetIndex, e => targetIndex.value = e)
 watch(() => props.open, e => {

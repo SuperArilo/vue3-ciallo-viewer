@@ -1,20 +1,20 @@
 <template>
-    <img
-        class="item-img"
-        :src="src"
-        :style="imageStyle"
-        ref="instance"
-        @load="handleLoad"
-        @error="(e: Event) => {
-            (e.target as HTMLImageElement).src = errorPng
-        }"
-        alt="viewer"/>
+    <div class="image_item_box">
+        <img
+            class="item-img"
+            :src="src"
+            ref="instance"
+            @load="handleImageLoad"
+            @error="(e: Event) => (e.target as HTMLImageElement).src = errorPng"
+            alt="viewer" />
+    </div>
 </template>
 <script setup lang="ts">
 import '../assets/scss/ImageItem.scss'
-import {ref, watch, onMounted, onBeforeUnmount, CSSProperties} from 'vue'
+import {onBeforeUnmount, onMounted, ref, watch} from 'vue'
 import {ImageItemProps} from "../type/Types"
-import { errorPng } from "../util/PublicData"
+import {BuildTransition} from '../util/PublicFunction'
+import {errorPng} from "../util/PublicData"
 const props = withDefaults(defineProps<ImageItemProps>(), {
     closeStatus: true,
     duration: 300,
@@ -23,31 +23,8 @@ const props = withDefaults(defineProps<ImageItemProps>(), {
 })
 const src = ref<string>(props.src)
 const instance = ref<HTMLImageElement | null>(null)
-const transition = {
-    opacity: `opacity ${props.duration}ms`,
-    transform: `transform ${props.duration}ms`
-}
-const imageStyle = ref<CSSProperties>({
-    opacity: '',
-    transition: '',
-    transform: '',
-    width: '',
-    height: ''
-})
-//图片加载完成
-const handleLoad = () => {
-    handleResize()
-    window.requestAnimationFrame(() => {
-        imageStyle.value.opacity = '1'
-        imageStyle.value.transition = `${transition.opacity}, ${transition.transform}`
-        imageStyle.value.transform = 'scale(1)'
-    })
-    setTimeout(() => imageStyle.value.transition = '', props.duration)
-}
-//设置图片的宽高
-const handleResize = (): void => {
-    if (instance.value == null) return
-    const aspectRatio = instance.value.naturalWidth / instance.value.naturalHeight
+const setWidthHeight = (element: HTMLImageElement): void => {
+    const aspectRatio = element.naturalWidth / element.naturalHeight
     const maxWidth = window.innerWidth * 0.8
     const maxHeight = window.innerHeight * 0.8
     let newWidth, newHeight
@@ -58,29 +35,47 @@ const handleResize = (): void => {
         newHeight = maxHeight
         newWidth = maxHeight * aspectRatio
     }
-    imageStyle.value.width = `${newWidth}px`
-    imageStyle.value.height = `${newHeight}px`
+    element.style.width = `${newWidth}px`
+    element.style.height = `${newHeight}px`
+}
+//设置图片的宽高
+const handleResize = (): void => {
+    if (instance.value == null) return
+    setWidthHeight(instance.value)
+}
+const handleImageLoad = (): void => {
+    if(instance.value == null) return
+    instance.value.style.transition = BuildTransition.value(['transform', 'opacity'], props.duration)
+    instance.value.style.opacity = '1'
+    instance.value.style.transform = 'scale(1)'
+    setWidthHeight(instance.value)
 }
 
-
-onMounted(() => {
-    window.addEventListener('resize', handleResize)
-})
+onMounted(() => window.addEventListener('resize', handleResize))
 //销毁
-onBeforeUnmount(() => {
-    window.removeEventListener('resize', handleResize)
-})
+onBeforeUnmount(() => window.removeEventListener('resize', handleResize))
+//关闭状态
 watch(() => props.closeStatus, e => {
     if(e) {
-        imageStyle.value.transform = ''
-        imageStyle.value.opacity = '0'
-        imageStyle.value.transition = `${transition.opacity}, ${transition.transform}`
+        if(instance.value !== null) {
+            instance.value.style.transition = BuildTransition.value(['transform', 'opacity'], props.duration)
+            instance.value.style.transform = `scale(0) translate(${props.x}px, ${props.y}px)`
+            instance.value.style.opacity = '0'
+        }
     }
 })
+//更改坐标
 watch(() => [props.x, props. y], e => {
     window.requestAnimationFrame(() => {
-        imageStyle.value.transform = `scale(1) translate(${e[0]}px, ${e[1]}px)`
-        imageStyle.value.transition = e[0] === 0 && e[1] === 0 ? `${transition.opacity}, ${transition.transform}` : ''
+        if(instance.value !== null) {
+            instance.value.style.transform = `scale(1) translate(${e[0]}px, ${e[1]}px)`
+            instance.value.style.transition = e[0] === 0 && e[1] === 0 ? BuildTransition.value(['opacity', 'transform'], props.duration) : ''
+        }
     })
+})
+//动态更新src变化
+watch(() => props.src, (e: string): void => {
+    if(instance.value == null) return
+    src.value = e
 })
 </script>
