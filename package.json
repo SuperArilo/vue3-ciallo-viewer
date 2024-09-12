@@ -1,6 +1,6 @@
 {
     "name": "vue3-ciallo-viewer",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "description": "适用于vue3的图片浏览组件",
     "main": "vue3-ciallo-viewer.mjs",
     "module": "dist/vue3-ciallo-viewer.umd.js",
@@ -23,6 +23,12 @@
     },
     "peerDependencies": {
         "vue": "^3.0.0"
+    },
+    "devDependencies": {
+        "sass": "^1.78.0",
+        "sass-loader": "^16.0.1",
+        "typescript": "^5.5.3",
+        "vue-tsc": "^2.0.29"
     },
     "files": [
         "dist",
