@@ -3,7 +3,11 @@
 [![NPM version][npm-image]][npm-url] [![node version][node-image]][node-url] [![npm download][download-image]][download-url] [![npm license][license-image]][download-url]
 
 **An exquisite vue3 image preview component.**
-**Mobile device support** ✔
+**Mobile device support ✔**
+
+![effect1](https://github.com/SuperArilo/vue3-ciallo-viewer/blob/main/gif/1.gif?raw=true)
+![effect1](https://github.com/SuperArilo/vue3-ciallo-viewer/blob/main/gif/2.gif?raw=true)
+
 
 ## Install
 
@@ -44,6 +48,78 @@ import 'vue3-ciallo-viewer/dist/style.css'
 import { ref } from 'vue'
 const status = ref<boolean>(false)
 </script>
+```
+
+## API
+
+### CialloViewer
+
+```
+CialloViewer(array: HTMLCollection, targetIndex?: number | null, duration?: number): void
+```
+
+##### Parameters
+
+* **array** : `HTMLCollection`
+  The collection of images to display.
+* **targetIndex** : `number | null` (optional)
+  The index of the image to highlight, defaults to `0`.
+* **duration** : `number` (optional)
+  The duration of the image transition, defaults to `400` milliseconds.
+
+##### Return Value
+
+### UnmountTargetViewer
+
+```
+UnmountTargetViewer(): void
+```
+
+#### Description
+
+The `UnmountTargetViewer` function unmounts the current image viewer.
+
+#### Return Value
+
+`void` - This function does not return any value.
+
+## API Basic usage
+
+```
+<template>
+    <div>
+        <div ref="images">
+            <img class="image_class" v-for="(item, index) in list" :key="item.id" @click="handleClick(index)" :src="item.src"  alt=""/>
+        </div>
+    </div>
+</template>
+<script setup lang="ts">
+import {CialloViewer} from "vue3-ciallo-viewer"
+import 'vue3-ciallo-viewer/dist/style.css'
+import {ref} from 'vue'
+const list = ref<any[]>([
+    {
+        id: 0,
+        src: './src/assets/images/1.jpg'
+    },
+    {
+        id: 1,
+        src: './src/assets/images/2.jpg'
+    },
+    {
+        id: 2,
+        src: './src/assets/images/3.jpg'
+    }
+])
+const images = ref<HTMLElement>()
+const handleClick = (index: number): void => {
+    if(!images.value) return
+    CialloViewer(images.value.getElementsByTagName('img'), index, 400)
+}
+</script>
+<style>
+</style>
+
 ```
 
 [npm-image]: https://img.shields.io/npm/v/vue3-ciallo-viewer.svg?style=flat-square
