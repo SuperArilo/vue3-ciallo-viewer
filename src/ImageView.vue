@@ -279,6 +279,7 @@ watch(() => props.images, e => {
     justify-content: center;
     align-items: center;
     position: relative;
+    overflow: hidden;
 }
 .image-view-mask .top-function {
     width: 100%;
