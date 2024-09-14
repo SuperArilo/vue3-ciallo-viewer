@@ -53,7 +53,7 @@ export interface ListViewerProps {
 export interface CialloItemProps  {
     src: string
     index: number
-    status: boolean
+    status?: boolean
     duration?: number
     targetIndex?: number | null
     rawObject: HTMLImageElement
