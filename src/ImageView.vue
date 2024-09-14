@@ -7,12 +7,12 @@
             class="image-view-mask"
             ref="mask"
             v-if="openStatus"
-            @touchstart.passive="handleDownEvent"
-            @touchmove.passive="handleMoveEvent"
-            @touchend.passive="handleUpEvent"
-            @mousedown="handleDownEvent"
-            @mousemove="handleMoveEvent"
-            @mouseup="handleUpEvent">
+            @mousedown.prevent="handleDownEvent"
+            @mousemove.prevent="handleMoveEvent"
+            @mouseup.prevent="handleUpEvent"
+            @touchstart.prevent="handleDownEvent"
+            @touchmove.prevent="handleMoveEvent"
+            @touchend.prevent="handleUpEvent">
                 <div class="top-function">
                     <span></span>
                     <div class="close" @click="commitClose" @touchstart.passive="commitClose"></div>

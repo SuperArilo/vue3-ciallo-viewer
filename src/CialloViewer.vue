@@ -2,12 +2,12 @@
     <div
         ref="mask"
         class="image-view-mask"
-        @mousedown="handleDownEvent"
-        @mousemove="handleMoveEvent"
-        @mouseup="handleUpEvent"
-        @touchstart.passive="handleDownEvent"
-        @touchmove.passive="handleMoveEvent"
-        @touchend.passive="handleUpEvent">
+        @mousedown.prevent="handleDownEvent"
+        @mousemove.prevent="handleMoveEvent"
+        @mouseup.prevent="handleUpEvent"
+        @touchstart.prevent="handleDownEvent"
+        @touchmove.prevent="handleMoveEvent"
+        @touchend.prevent="handleUpEvent">
         <ul
             :style="{
                 transition: `transform ${props.duration}ms`,
@@ -161,7 +161,7 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
     }
 
 }
-const handleUpEvent = (): void => {
+const handleUpEvent = (e: MouseEvent | TouchEvent): void => {
     if(status.value) {
         if(!boundaryPosition.value.y.status && !boundaryPosition.value.x.status) {
             restoreStatus()
@@ -201,6 +201,7 @@ const handleIsMouseOverWindow = (e: MouseEvent | TouchEvent): void => {
 const handleResize = () => {
     if(imageRefs.value == null && !isHandleResize) return
     isHandleResize = true
+
     for(let a of imageRefs.value) {
         a.reSetImageStatus()
     }
@@ -257,7 +258,6 @@ const maskBackgroundColor = computed(() => (value: Number): string => `rgba(0, 0
 }
 .image-view-mask ul li {
     width: 100%;
-    height: 100%;
     list-style: none;
     flex: none;
     overflow: hidden;
