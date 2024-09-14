@@ -10,7 +10,7 @@
 <script setup lang="ts">
 import {CialloItemProps} from "../type/Types";
 import {BuildTransition, ImageRatio} from "../util/PublicFunction";
-import {CSSProperties, ref, watch, defineExpose} from "vue";
+import {CSSProperties, ref, watch} from "vue";
 import {errorPng} from "../util/PublicData";
 const props = withDefaults(defineProps<CialloItemProps>(), {
     duration: 300,
