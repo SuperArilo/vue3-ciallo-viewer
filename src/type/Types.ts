@@ -26,3 +26,39 @@ export interface ViewerChangeEvents {
     (e: 'prev', payload: number): void
     (e: 'next', payload: number): void
 }
+export interface SimpleViewer {
+    open: boolean
+    duration?: number
+    object: HTMLImageElement
+    preX?: number
+    preY?: number
+    //显示的宽度
+    clientWidth: number
+    //显示的高度
+    clientHeight: number
+    //实际的宽度
+    naturalWidth: number,
+    //实际的高度
+    naturalHeight: number
+}
+export interface BuildTransitionType {
+    type: string
+    duration: number
+}
+export interface ListViewerProps {
+    images: HTMLCollection
+    targetIndex?: number
+    duration?: number
+}
+export interface CialloItemProps  {
+    src: string
+    index: number
+    status: boolean
+    duration?: number
+    targetIndex: number
+    rawObject: HTMLImageElement
+    preX: number
+    preY: number
+    x: number
+    y: number
+}
