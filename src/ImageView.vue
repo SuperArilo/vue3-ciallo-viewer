@@ -7,18 +7,12 @@
             class="image-view-mask"
             ref="mask"
             v-if="openStatus"
-            @touchstart.passive="(e: TouchEvent): void => {
-                if((e.target as HTMLElement).localName === 'img') {
-                    prePosition.x = e.touches[0].clientX
-                    prePosition.y = e.touches[0].clientY
-                    isMouseDown = true
-                }
-            }"
-            @touchmove.passive="handleTouchMove"
-            @touchend.passive="publicHandleUp"
-            @mousedown="handleMouseDown"
-            @mouseup="publicHandleUp"
-            @mousemove="handleMouseMove">
+            @touchstart.passive="handleDownEvent"
+            @touchmove.passive="handleMoveEvent"
+            @touchend.passive="handleUpEvent"
+            @mousedown="handleDownEvent"
+            @mousemove="handleMoveEvent"
+            @mouseup="handleUpEvent">
                 <div class="top-function">
                     <span></span>
                     <div class="close" @click="commitClose" @touchstart.passive="commitClose"></div>
@@ -34,6 +28,7 @@
                         v-for="(item, index) in images"
                         :key="index">
                         <ImageItem
+                            ref="imageRefs"
                             :x="targetIndex == index ? afterOffset.x:0"
                             :y="targetIndex == index ? afterOffset.y:0"
                             :duration="props.duration"
@@ -45,7 +40,6 @@
     </Transition>
 </template>
 <script setup lang="ts">
-import './assets/scss/ImageView.scss'
 import ImageItem from './components/ImageItem.vue'
 import {nextTick, ref, computed, watch, onMounted, onBeforeUnmount} from 'vue'
 import {BuildTransition} from './util/PublicFunction'
@@ -60,6 +54,8 @@ const emits = defineEmits<ViewerChangeEvents>()
 const openStatus = ref<Boolean>(props.open)
 const imageUl = ref(null)
 const mask = ref<HTMLElement | null>(null)
+//imagesRefs 列表，用于获取里面的更新图片的宽高方法
+const imageRefs = ref<any>()
 const images = ref<Array<string>>(props.images)
 //通知关闭的状态
 const closeStatus = ref(false)
@@ -78,6 +74,8 @@ const boundaryPosition = ref<BoundaryPosition>({
 })
 //目标图片索引
 const targetIndex = ref(props.targetIndex)
+//是否在进行handleResize
+let isHandleResize: boolean = false
 //开始鼠标按下的初始坐标，不需要响应式
 const prePosition = {
     x: 0,
@@ -96,142 +94,65 @@ const beforeEnter = (element: Element): void => {
 }
 const afterEnter = (element: Element): void => {
     if(element instanceof HTMLElement) {
-        element.style.transition = BuildTransition.value(['opacity', 'background-color'], props.duration)
+        element.style.transition = BuildTransition.value([{ type: 'opacity', duration: props.duration }, { type: 'background-color', duration: props.duration }])
         element.style.opacity = '1'
         element.style.backgroundColor = maskBackgroundColor.value(1)
     }
 }
 const beforeLeave = (element: Element): void => {
     if(element instanceof HTMLElement) {
-        element.style.transition = BuildTransition.value(['opacity'], props.duration)
+        element.style.transition = BuildTransition.value([{ type: 'opacity', duration: props.duration }])
         element.style.opacity = '0'
     }
 }
-const handleMouseDown = (e: MouseEvent): void => {
-    const target = e.target as HTMLElement
-    if(target.localName === 'img' ) {
-        prePosition.x = e.x
-        prePosition.y = e.y
-        isMouseDown.value = true
+const handleDownEvent = (e: MouseEvent | TouchEvent): void => {
+    const target = e.target as HTMLElement;
+    if (target.localName === 'img') {
+        const { clientX, clientY } = e instanceof MouseEvent
+            ? e
+            : e.touches[0];
+        prePosition.x = clientX;
+        prePosition.y = clientY;
+        isMouseDown.value = true;
+
+        if (mask.value) {
+            mask.value.style.transition = '';
+        }
+        if (e instanceof MouseEvent) {
+            e.preventDefault();
+        }
     }
 }
 //鼠标移动时候进行
-const handleMouseMove = (e: MouseEvent): void => {
+const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
     if (!isMouseDown.value) return
-    if(mask.value !== null && mask.value.style.transition !== null) {
-        mask.value.style.transition = ''
-    }
-    // 计算拖拽的相对距离
-    const rx = e.clientX - prePosition.x
-    const ry = e.clientY - prePosition.y
-
-    // 根据拖拽距离和速度因子更新偏移
-    let newX = rx * Math.max(0.3, 1 - Math.abs(rx) / window.innerWidth)
-    let newY = ry * Math.max(0.3, 1 - Math.abs(ry) / window.innerHeight)
-
-    // 限制偏移边界，避免超出视口范围
-    const maxXOffset = window.innerWidth / 2
-    const maxYOffset = window.innerHeight / 2
-
-    newX = Math.max(Math.min(newX, maxXOffset), -maxXOffset)
-    newY = Math.max(Math.min(newY, maxYOffset), -maxYOffset)
-
-    const yRatio = Math.abs(newY) / maxYOffset
-    const xRatio = Math.abs(newX) / maxXOffset
-
-    //触发切换图片的时候判断鼠标作用的是否是图片上
-    const target = e.target as HTMLElement
-    if(target.localName == 'img') {
-        //记录movement
-        boundaryPosition.value.y.movement = e.movementY
+    let clampedX, clampedY
+    if(e instanceof MouseEvent) {
+        clampedX = e.x - prePosition.x
+        clampedY = e.y - prePosition.y
         boundaryPosition.value.x.movement = e.movementX
-        // 判断是否达到边界
-        boundaryPosition.value.y.status = yRatio >= 0.3 && xRatio <= 0.1
-        boundaryPosition.value.x.status = xRatio >= 0.1 && yRatio <= 0.1
-        window.requestAnimationFrame(() => {
-            if(mask.value == null) return
-            mask.value.style.backgroundColor = maskBackgroundColor.value(1 - yRatio)
-        })
-    }
-    afterOffset.value.x = newX
-    afterOffset.value.y = newY
-    
-}
-//移动设备按住不放进行
-const handleTouchMove = (e: TouchEvent) => {
-    const touch = e.touches[0]
-    if (!isMouseDown.value) return
-    if(mask.value !== null && mask.value.style.transition !== null) {
-        mask.value.style.transition = ''
-    }
-
-    // 计算拖拽的相对距离
-    const rx = touch.clientX - prePosition.x
-    const ry = touch.clientY - prePosition.y
-    // 根据拖拽距离和速度因子更新偏移
-    let newX = rx * Math.max(0.3, 1 - Math.abs(rx) / window.innerWidth)
-    let newY = ry * Math.max(0.3, 1 - Math.abs(ry) / window.innerHeight)
-    // 限制偏移边界，避免超出视口范围
-    const maxXOffset = window.innerWidth / 2
-    const maxYOffset = window.innerHeight / 2
-    newX = Math.max(Math.min(newX, maxXOffset), -maxXOffset)
-    newY = Math.max(Math.min(newY, maxYOffset), -maxYOffset)
-
-    const yRatio = Math.abs(newY) / maxYOffset
-    const xRatio = Math.abs(newX) / maxXOffset
-
-    //触发切换图片的时候判断鼠标作用的是否是图片上
-    if((e.target as HTMLElement).localName == 'img') {
+        boundaryPosition.value.y.movement = e.movementY
+    } else {
+        const touch = e.touches[0]
+        clampedX = touch.clientX - prePosition.x
+        clampedY = touch.clientY - prePosition.y
         boundaryPosition.value.y.movement = touch.clientY - prePosition.y > 0 ? 1:-1
         boundaryPosition.value.x.movement = touch.clientX - prePosition.x > 0 ? 1:-1
-        // 判断是否达到边界
-        boundaryPosition.value.y.status = yRatio >= 0.2 && xRatio <= 0.3
-        boundaryPosition.value.x.status = xRatio >= 0.1 && yRatio <= 0.1
-        window.requestAnimationFrame(() => {
-            if(mask.value == null) return
-            mask.value.style.backgroundColor = maskBackgroundColor.value(1 - yRatio)
-        })
     }
-    afterOffset.value.x = newX
-    afterOffset.value.y = newY
-}
-//恢复初始状态
-const restoreStatus = () => {
-    prePosition.x = 0
-    prePosition.y = 0
+    const xRatio = Math.abs(clampedX) / window.innerWidth
+    const yRatio = Math.abs(clampedY) / window.innerHeight
+    boundaryPosition.value.x.status = xRatio >= 0.1 && yRatio <= 0.05
+    boundaryPosition.value.y.status = yRatio >= 0.1 && xRatio <= 0.2
+    afterOffset.value.x = clampedX
+    afterOffset.value.y = clampedY
     window.requestAnimationFrame(() => {
-        afterOffset.value.x = 0
-        afterOffset.value.y = 0
-        if(mask.value) {
-            mask.value.style.transition = BuildTransition.value(['background-color'], props.duration)
-            mask.value.style.backgroundColor = maskBackgroundColor.value(1)
+        if (mask.value) {
+            mask.value.style.backgroundColor = maskBackgroundColor.value(1 - yRatio * 2)
         }
     })
 }
-//检查鼠标是否移动到文档外
-const handleIsMouseOverWindow = (e: MouseEvent | TouchEvent): void => {
-    if(e instanceof MouseEvent && (e.clientY < 0 || e.clientY > window.innerHeight || e.clientX < 0 || e.clientX > window.innerWidth)) {
-        commitClose()
-    }
-}
-onMounted(() => {
-    document.addEventListener('mouseup', handleIsMouseOverWindow)
-    document.addEventListener('touchend', handleIsMouseOverWindow)
-})
-onBeforeUnmount(() => document.removeEventListener('mouseup', handleIsMouseOverWindow))
-//提交关闭
-const commitClose = () => {
-    closeStatus.value = true
-    isMouseDown.value = false
-    nextTick(() => {
-        closeStatus.value = false
-        targetIndex.value = props.targetIndex
-        openStatus.value = false
-        emits('close', null)
-    })
-}
 //鼠标松开时候进行, 移动端手指松开进行 公用
-const publicHandleUp = (): void => {
+const handleUpEvent = (): void => {
     if(!boundaryPosition.value.y.status && !boundaryPosition.value.x.status) {
         restoreStatus()
     } else if(boundaryPosition.value.x.status) {
@@ -244,7 +165,7 @@ const publicHandleUp = (): void => {
         if(boundaryPosition.value.x.movement !== null && boundaryPosition.value.x.movement < 0 && targetIndex.value >= 0 && props.images.length > 0 && targetIndex.value + 1 < props.images.length) {
             targetIndex.value++
             emits('next', targetIndex.value)
-        //上一张
+            //上一张
         } else if(boundaryPosition.value.x.movement !== null && boundaryPosition.value.x.movement > 0 && targetIndex.value > 0) {
             targetIndex.value--
             emits('prev', targetIndex.value)
@@ -261,6 +182,55 @@ const publicHandleUp = (): void => {
     boundaryPosition.value.y.status = false
     isMouseDown.value = false
 }
+//恢复初始状态
+const restoreStatus = () => {
+    prePosition.x = 0
+    prePosition.y = 0
+    window.requestAnimationFrame(() => {
+        afterOffset.value.x = 0
+        afterOffset.value.y = 0
+        if(mask.value) {
+            mask.value.style.transition = BuildTransition.value([{ type: 'background-color', duration: props.duration }])
+            mask.value.style.backgroundColor = maskBackgroundColor.value(1)
+        }
+    })
+}
+//检查鼠标是否移动到文档外
+const handleIsMouseOverWindow = (e: MouseEvent | TouchEvent): void => {
+    if(e instanceof MouseEvent && (e.clientY < 0 || e.clientY > window.innerHeight || e.clientX < 0 || e.clientX > window.innerWidth)) {
+        commitClose()
+    }
+}
+//窗口变化
+const handleResize = () => {
+    if(imageRefs.value == null && !isHandleResize) return
+    isHandleResize = true
+    for(let a of imageRefs.value) {
+        a.reSetImageStatus()
+    }
+    isHandleResize = false
+}
+onMounted(() => {
+    document.addEventListener('mouseup', handleIsMouseOverWindow)
+    document.addEventListener('touchend', handleIsMouseOverWindow)
+    window.addEventListener('resize', handleResize)
+})
+onBeforeUnmount(() => {
+    document.removeEventListener('mouseup', handleIsMouseOverWindow)
+    document.removeEventListener('touchend', handleIsMouseOverWindow)
+})
+//提交关闭
+const commitClose = () => {
+    closeStatus.value = true
+    isMouseDown.value = false
+    nextTick(() => {
+        closeStatus.value = false
+        targetIndex.value = props.targetIndex
+        openStatus.value = false
+        emits('close', null)
+    })
+}
+
 //返回mask的背景颜色设置
 const maskBackgroundColor = computed(() => (value: Number): string => `rgba(0, 0, 0, ${value})`)
 //动态更新目标index
@@ -278,3 +248,68 @@ watch(() => props.images, e => {
     }
 })
 </script>
+<style scoped>
+.image-view-mask {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
+    z-index: 10000;
+    user-select: none;
+    will-change: background-color, opacity, transform;
+}
+.image-view-mask .image-list {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-wrap: nowrap;
+    will-change: transform;
+    margin: 0;
+    padding: 0;
+}
+.image-view-mask .image-list li {
+    width: 100%;
+    height: 100%;
+    list-style: none;
+    flex: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+.image-view-mask .top-function {
+    width: 100%;
+    height: 42px;
+    position: absolute;
+    right: 0;
+    top: 0;
+    display: flex;
+    justify-content: space-between;
+}
+.image-view-mask .top-function .close {
+    width: 42px;
+    height: inherit;
+    position: relative;
+    z-index: 1;
+    cursor: pointer;
+}
+.image-view-mask .top-function .close:before, .image-view-mask .top-function .close:after {
+    content: '';
+    display: block;
+    left: 50%;
+    top: 50%;
+    position: absolute;
+    background-color: #fff;
+    width: 70%;
+    height: 2px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+.image-view-mask .top-function .close:before {
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+.image-view-mask .top-function .close:after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+</style>
