@@ -36,13 +36,28 @@ const handleError = (e: Event): void => {
     const target = e.target as HTMLImageElement
     target.src = errorPng
     errorStatus = true
+    setErrorPng()
+}
+const setErrorPng = (): void => {
+    window.requestAnimationFrame(() => {
+        if(instance.value == null) return
+        centerPosition.x = window.innerWidth / 2 - instance.value.clientWidth / 2
+        centerPosition.y = window.innerHeight / 2 - instance.value.clientHeight / 2
+        style.value.transform = `translate(${centerPosition.x}px, ${centerPosition.y}px)`
+    })
 }
 const reSetImageStatus = (): void => {
     if(instance.value == null) return
     instance.value.style.transition = ''
+    if(errorStatus) {
+        setErrorPng()
+        return
+    }
     ratio.value = ImageRatio(props.rawObject)
-    centerPosition.x = window.innerWidth / 2 - props.rawObject.clientWidth * ratio.value / 2
-    centerPosition.y = window.innerHeight / 2 - props.rawObject.clientHeight * ratio.value / 2
+    if(!errorStatus) {
+        centerPosition.x = window.innerWidth / 2 - props.rawObject.clientWidth * ratio.value / 2
+        centerPosition.y = window.innerHeight / 2 - props.rawObject.clientHeight * ratio.value / 2
+    }
     window.requestAnimationFrame(() => {
         style.value.width = `${props.rawObject.clientWidth * ratio.value}px`
         style.value.height = `${props.rawObject.clientHeight * ratio.value}px`
@@ -57,6 +72,7 @@ watch(() => [props.x, props.y], e => {
     if(e) {
         window.requestAnimationFrame(() => {
             if(instance.value !== null) {
+
                 style.value.transform = `translate(${centerPosition.x + props.x}px, ${centerPosition.y + props.y}px)`
                 style.value.transition = e[0] === 0 && e[1] === 0 ? BuildTransition.value([{ type: 'opacity', duration: props.duration }, { type: 'transform', duration: props.duration }]) : ''
             }
