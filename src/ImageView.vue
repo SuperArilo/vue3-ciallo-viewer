@@ -106,6 +106,7 @@ const beforeLeave = (element: Element): void => {
     }
 }
 const handleDownEvent = (e: MouseEvent | TouchEvent): void => {
+    if(closeStatus.value) return
     const target = e.target as HTMLElement;
     if (target.localName === 'img') {
         const { clientX, clientY } = e instanceof MouseEvent
@@ -125,7 +126,7 @@ const handleDownEvent = (e: MouseEvent | TouchEvent): void => {
 }
 //鼠标移动时候进行
 const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
-    if (!isMouseDown.value) return
+    if (!isMouseDown.value || closeStatus.value) return
     let clampedX, clampedY
     if(e instanceof MouseEvent) {
         clampedX = e.x - prePosition.x
@@ -153,6 +154,7 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
 }
 //鼠标松开时候进行, 移动端手指松开进行 公用
 const handleUpEvent = (): void => {
+    if(closeStatus.value) return
     if(!boundaryPosition.value.y.status && !boundaryPosition.value.x.status) {
         restoreStatus()
     } else if(boundaryPosition.value.x.status) {
