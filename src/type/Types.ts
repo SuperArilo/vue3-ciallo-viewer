@@ -55,7 +55,7 @@ export interface CialloItemProps  {
     index: number
     status: boolean
     duration?: number
-    targetIndex: number
+    targetIndex?: number | null
     rawObject: HTMLImageElement
     preX: number
     preY: number
