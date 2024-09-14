@@ -36,14 +36,17 @@ const handleError = (e: Event): void => {
     const target = e.target as HTMLImageElement
     target.src = errorPng
     errorStatus = true
-    setErrorPng()
 }
 const setErrorPng = (): void => {
+    if(instance.value == null) return
+    ratio.value = ImageRatio(instance.value)
+    centerPosition.x = window.innerWidth / 2 - instance.value.clientWidth * ratio.value / 2
+    centerPosition.y = window.innerHeight / 2 - instance.value.clientHeight * ratio.value / 2
     window.requestAnimationFrame(() => {
         if(instance.value == null) return
-        centerPosition.x = window.innerWidth / 2 - instance.value.clientWidth / 2
-        centerPosition.y = window.innerHeight / 2 - instance.value.clientHeight / 2
         style.value.transform = `translate(${centerPosition.x}px, ${centerPosition.y}px)`
+        style.value.width = `${instance.value.clientWidth * ratio.value}px`
+        style.value.height = `${instance.value.clientHeight * ratio.value}px`
     })
 }
 const reSetImageStatus = (): void => {
