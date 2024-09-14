@@ -4,16 +4,21 @@
         :style="style"
         :src="props.src"
         @load="handleLoad"
+        @error="handleError"
         alt="" />
 </template>
 <script setup lang="ts">
 import {CialloItemProps} from "../type/Types";
 import {BuildTransition, ImageRatio} from "../util/PublicFunction";
 import {CSSProperties, ref, watch, defineExpose} from "vue";
+import {errorPng} from "../util/PublicData";
 const props = withDefaults(defineProps<CialloItemProps>(), {
-    duration: 300
+    duration: 300,
+    status: true
 })
 const instance = ref<HTMLImageElement | null>(null)
+//图片是否有效
+let errorStatus: boolean = false
 let ratio = ref<number>(0)
 //记录的图片位于屏幕上的中心坐标
 const centerPosition = {
@@ -23,10 +28,15 @@ const centerPosition = {
 const style = ref<CSSProperties>({
     transform: `matrix(1, 0, 0, 1, ${props.preX}, ${props.preY})`,
     transition: BuildTransition.value([{ type: 'transform', duration: props.duration }]),
-    width: `${props.rawObject.clientWidth}px`,
-    height: `${props.rawObject.clientHeight}px`
+    width: `${props.rawObject.clientWidth == 0 ? 208:props.rawObject.clientWidth}px`,
+    height: `${props.rawObject.clientHeight == 0 ? 200:props.rawObject.clientHeight}px`
 })
 const handleLoad = (): void => reSetImageStatus()
+const handleError = (e: Event): void => {
+    const target = e.target as HTMLImageElement
+    target.src = errorPng
+    errorStatus = true
+}
 const reSetImageStatus = (): void => {
     if(instance.value == null) return
     instance.value.style.transition = ''
@@ -50,9 +60,14 @@ watch(() => [props.x, props. y], e => {
 
 })
 watch(() => props.status, e => {
-    if(!e) {
+    if(!e && props.index === props.targetIndex) {
         window.requestAnimationFrame(() => {
-            style.value.transform = `matrix(1, 0, 0, 1, ${props.preX}, ${props.preY})`
+            if(errorStatus) {
+                if(instance.value == null) return
+                style.value.transform = `matrix(0.001, 0, 0, 0.001, ${window.innerWidth / 2 - instance.value.width / 2}, ${window.innerHeight / 2 - instance.value.height / 2})`
+            } else {
+                style.value.transform = `matrix(1, 0, 0, 1, ${props.preX}, ${props.preY})`
+            }
         })
     }
 })
