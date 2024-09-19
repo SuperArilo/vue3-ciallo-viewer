@@ -243,11 +243,6 @@ const maskBackgroundColor = computed(() => (value: Number): string => `rgba(0, 0
     user-select: none;
     will-change: background-color;
 }
-.image-view-mask :deep(img) {
-    -webkit-user-drag: none;
-    cursor: grab;
-    will-change: transform;
-}
 .image-view-mask ul {
     width: 100%;
     height: 100%;
@@ -261,6 +256,7 @@ const maskBackgroundColor = computed(() => (value: Number): string => `rgba(0, 0
     list-style: none;
     flex: none;
     overflow: hidden;
+    position: relative;
 }
 .image-view-mask .top-function {
     width: 100%;
