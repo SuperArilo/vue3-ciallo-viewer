@@ -1,6 +1,6 @@
 import { computed } from '@vue/reactivity'
 import {CSSProperties} from "vue";
-import {BuildTransitionType} from "../type/Types";
+import {BuildTransitionType} from "../type/Types"
 export const BuildTransition = computed(() => {
     return (array: BuildTransitionType[]): string => {
         if (array.length === 0) return ''
@@ -18,7 +18,7 @@ export const ImageRatio = (current: HTMLImageElement): number => {
     let ratio: number
     const halfWindowWidth = window.innerWidth / 2
     const halfWindowHeight = window.innerHeight / 2
-    if (current.naturalWidth < halfWindowWidth && current.naturalHeight < halfWindowHeight) {
+    if (current.naturalWidth < halfWindowWidth || current.naturalHeight < halfWindowHeight) {
         ratio = Math.min(halfWindowWidth / current.clientWidth, halfWindowHeight / current.clientHeight)
     } else {
         ratio = Math.min(window.innerWidth / current.clientWidth, window.innerHeight / current.clientHeight)
