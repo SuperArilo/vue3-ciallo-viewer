@@ -207,6 +207,7 @@ const handleResize = () => {
     isHandleResize = false
 }
 onMounted(() => {
+    document.body.style.overflow = 'hidden'
     if(props.targetIndex == null) {
         targetIndex.value = 0
     }
@@ -227,6 +228,7 @@ onBeforeUnmount(() => {
     document.removeEventListener('mouseup', handleIsMouseOverWindow)
     document.removeEventListener('touchend', handleIsMouseOverWindow)
     window.removeEventListener('resize', handleResize)
+    document.body.style.overflow = ''
 })
 //返回mask的背景颜色设置
 const maskBackgroundColor = computed(() => (value: Number): string => `rgba(0, 0, 0, ${value})`)
