@@ -18,8 +18,8 @@
                     ref="imageRefs"
                     :index="index"
                     :src="(item as HTMLImageElement).src"
-                    :pre-x="(props.images[index] as HTMLImageElement).offsetLeft"
-                    :pre-y="(props.images[index] as HTMLImageElement).offsetTop"
+                    :pre-x="(props.images[index] as HTMLImageElement).getBoundingClientRect().x"
+                    :pre-y="(props.images[index] as HTMLImageElement).getBoundingClientRect().y"
                     :x="targetIndex === index ? afterOffset.x:0"
                     :y="targetIndex === index ? afterOffset.y:0"
                     :status="status"
@@ -161,7 +161,7 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
     }
 
 }
-const handleUpEvent = (e: MouseEvent | TouchEvent): void => {
+const handleUpEvent = (): void => {
     if(status.value) {
         if(!boundaryPosition.value.y.status && !boundaryPosition.value.x.status) {
             restoreStatus()
@@ -201,7 +201,6 @@ const handleIsMouseOverWindow = (e: MouseEvent | TouchEvent): void => {
 const handleResize = () => {
     if(imageRefs.value == null && !isHandleResize) return
     isHandleResize = true
-
     for(let a of imageRefs.value) {
         a.reSetImageStatus()
     }
