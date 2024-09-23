@@ -10,7 +10,7 @@
     </div>
 </template>
 <script setup lang="ts">
-import {defineExpose, ref, watch} from 'vue'
+import {ref, watch} from 'vue'
 import {ImageItemProps} from "../type/Types"
 import {BuildTransition, ImageRatio} from '../util/PublicFunction'
 import {errorPng} from "../util/PublicData"
