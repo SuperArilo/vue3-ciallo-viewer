@@ -11,6 +11,10 @@ export interface ImageItemProps {
     duration?: number,
     x?: number
     y?: number
+    scaleFactor: number
+    isMouseDown: boolean
+    movementX: number | null
+    movementY: number | null
 }
 export interface BoundaryPosition {
     x: BoundaryStatus
@@ -19,27 +23,6 @@ export interface BoundaryPosition {
 interface BoundaryStatus {
     status: boolean | null
     movement: number  | null
-}
-export interface ViewerChangeEvents {
-    (e: 'open', payload: null): void
-    (e: 'close', payload: null): void
-    (e: 'prev', payload: number): void
-    (e: 'next', payload: number): void
-}
-export interface SimpleViewer {
-    open: boolean
-    duration?: number
-    object: HTMLImageElement
-    preX?: number
-    preY?: number
-    //显示的宽度
-    clientWidth: number
-    //显示的高度
-    clientHeight: number
-    //实际的宽度
-    naturalWidth: number,
-    //实际的高度
-    naturalHeight: number
 }
 export interface BuildTransitionType {
     type: string

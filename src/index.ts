@@ -1,7 +1,5 @@
 import {createVNode, render} from 'vue'
-import ImageView from "./ImageView.vue"
 import ListViewer from "./CialloViewer.vue"
-export { ImageView }
 let container: HTMLElement
 export const CialloViewer = (array: HTMLCollection, targetIndex: number | null = 0, duration: number = 400): void => {
     if(array.length == 0) return
