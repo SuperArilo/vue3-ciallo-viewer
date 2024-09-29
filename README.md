@@ -3,7 +3,7 @@
 [![NPM version][npm-image]][npm-url] [![node version][node-image]][node-url] [![npm download][download-image]][download-url] [![npm license][license-image]][download-url]
 
 **An exquisite vue3 image preview component.**
-**Mobile device support ✔**
+**Mobile devices support zooming in and out ✔**
 
 ![effect1](https://github.com/SuperArilo/vue3-ciallo-viewer/blob/main/gif/1.gif?raw=true)
 ![effect1](https://github.com/SuperArilo/vue3-ciallo-viewer/blob/main/gif/2.gif?raw=true)
