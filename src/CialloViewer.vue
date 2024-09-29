@@ -18,18 +18,29 @@
                     ref="imageRefs"
                     :index="index"
                     :src="(item as HTMLImageElement).src"
-                    :pre-x="(props.images[index] as HTMLImageElement).getBoundingClientRect().x"
-                    :pre-y="(props.images[index] as HTMLImageElement).getBoundingClientRect().y"
                     :x="targetIndex === index ? afterOffset.x:0"
                     :y="targetIndex === index ? afterOffset.y:0"
                     :status="status"
                     :duration="props.duration"
                     :rawObject="props.images[index] as HTMLImageElement"
-                    :targetIndex="targetIndex" />
+                    :targetIndex="targetIndex"
+                    :scaleFactor="targetIndex === index ? scaleFactor: 1"
+                    :isMouseDown="isMouseDown"
+                    :movement-x="boundaryPosition.x.movement"
+                    :movement-y="boundaryPosition.y.movement"
+                    @handleRestore="() => {
+                        if(targetIndex == index) {
+                            scaleFactor = 1
+                        }
+                    }"/>
             </li>
         </ul>
         <div class="top-function">
-            <span></span>
+            <div class="index">
+                <span>{{ targetIndex + 1 }}</span>
+                <span>/</span>
+                <span>{{imageRefs?.length}}</span>
+            </div>
             <div class="close" @click="commitClose" @touchstart.passive="commitClose"></div>
         </div>
     </div>
@@ -76,6 +87,11 @@ const afterOffset = ref({
 })
 //是否在进行handleResize
 let isHandleResize: boolean = false
+//双指状态，第一次的间距
+let initialDistance: number = 0
+//实际放大的倍数
+const scaleFactor = ref<number>(1)
+
 //恢复初始状态
 const restoreStatus = () => {
     prePosition.x = 0
@@ -105,20 +121,29 @@ const commitClose = () => {
 }
 const handleDownEvent = (e: MouseEvent | TouchEvent): void => {
     if(status.value) {
-        const target = e.target as HTMLElement;
+        const target = e.target as HTMLElement
         if (target.localName === 'img') {
-            const { clientX, clientY } = e instanceof MouseEvent
-                ? e
-                : e.touches[0];
-            prePosition.x = clientX;
-            prePosition.y = clientY;
-            isMouseDown.value = true;
-
+            if(e instanceof MouseEvent) {
+                prePosition.x = e.clientX
+                prePosition.y = e.clientY
+            } else if (e instanceof TouchEvent) {
+                const to = e.touches
+                if(to.length == 1) {
+                    const b = to[0]
+                    prePosition.x = b.clientX
+                    prePosition.y = b.clientY
+                } else if(to.length == 2) {
+                    const touch1 = to[0]
+                    const touch2 = to[1]
+                    initialDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY)
+                }
+            }
+            isMouseDown.value = true
             if (mask.value) {
-                mask.value.style.transition = '';
+                mask.value.style.transition = ''
             }
             if (e instanceof MouseEvent) {
-                e.preventDefault();
+                e.preventDefault()
             }
         }
     }
@@ -127,7 +152,7 @@ const handleDownEvent = (e: MouseEvent | TouchEvent): void => {
 const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
     if(status.value) {
         if (!isMouseDown.value) return
-        let clampedX, clampedY
+        let clampedX: number = 0, clampedY: number = 0
         if(e instanceof MouseEvent) {
             clampedX = afterOffset.value.x + e.clientX - prePosition.x
             clampedY = afterOffset.value.y + e.clientY - prePosition.y
@@ -135,12 +160,29 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
             boundaryPosition.value.y.movement = e.movementY
             prePosition.x = e.clientX
             prePosition.y = e.clientY
-        } else {
-            const touch = e.touches[0]
-            clampedX = touch.clientX - prePosition.x
-            clampedY = touch.clientY - prePosition.y
-            boundaryPosition.value.y.movement = touch.clientY - prePosition.y > 0 ? 1:-1
-            boundaryPosition.value.x.movement = touch.clientX - prePosition.x > 0 ? 1:-1
+        } else if(e instanceof TouchEvent) {
+            const a = e.touches
+            if(a.length == 1) {
+                const touch = e.touches[0]
+                clampedX = touch.clientX - prePosition.x
+                clampedY = touch.clientY - prePosition.y
+                boundaryPosition.value.y.movement = touch.clientY - prePosition.y > 0 ? 1:-1
+                boundaryPosition.value.x.movement = touch.clientX - prePosition.x > 0 ? 1:-1
+            } else if(a.length == 2) {
+                const touch1 = a[0]
+                const touch2 = a[1]
+                // 计算当前两指的距离
+                const currentDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY)
+                const value = Math.abs(currentDistance / initialDistance - 1)
+                if (currentDistance > initialDistance) {
+                    //放大
+                    scaleFactor.value += value * 0.05
+                } else {
+                    //缩小
+                    scaleFactor.value -= value * 0.3
+                }
+                scaleFactor.value = parseFloat(Math.max(0.5, Math.min(5, scaleFactor.value)).toFixed(3))
+            }
         }
         // 计算比例
         const xRatio = Math.abs(clampedX) / window.innerWidth
@@ -151,7 +193,7 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
         // 更新位置
         afterOffset.value.x = clampedX
         afterOffset.value.y = clampedY
-        if(!boundaryPosition.value.x.status) {
+        if(!boundaryPosition.value.x.status && scaleFactor.value == 1) {
             window.requestAnimationFrame(() => {
                 if (mask.value) {
                     mask.value.style.backgroundColor = maskBackgroundColor.value(1 - yRatio * 2)
@@ -163,31 +205,31 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
 }
 const handleUpEvent = (): void => {
     if(status.value) {
-        if(!boundaryPosition.value.y.status && !boundaryPosition.value.x.status) {
-            restoreStatus()
-        } else if(boundaryPosition.value.x.status) {
+        if(scaleFactor.value == 1) {
+            if(!boundaryPosition.value.y.status && !boundaryPosition.value.x.status) {
+                restoreStatus()
+            } else if(boundaryPosition.value.x.status) {
+                //切换下一张
+                if(mask.value !== null) {
+                    mask.value.style.backgroundColor = maskBackgroundColor.value(1)
+                }
+                if(boundaryPosition.value.x.movement !== null && boundaryPosition.value.x.movement < 0 && targetIndex.value >= 0 && props.images.length > 0 && targetIndex.value + 1 < props.images.length) {
+                    targetIndex.value++
+                    //上一张
+                } else if(boundaryPosition.value.x.movement !== null && boundaryPosition.value.x.movement > 0 && targetIndex.value > 0) {
+                    targetIndex.value--
+                } else {
+                    restoreStatus()
+                }
+            } else {
+                commitClose()
+            }
+            //清空这次滑动后记录的坐标位移
+            boundaryPosition.value.x.status = false
+            boundaryPosition.value.y.status = false
             afterOffset.value.x = 0
             afterOffset.value.y = 0
-            //切换下一张
-            if(mask.value !== null) {
-                mask.value.style.backgroundColor = maskBackgroundColor.value(1)
-            }
-            if(boundaryPosition.value.x.movement !== null && boundaryPosition.value.x.movement < 0 && targetIndex.value >= 0 && props.images.length > 0 && targetIndex.value + 1 < props.images.length) {
-                targetIndex.value++
-                //上一张
-            } else if(boundaryPosition.value.x.movement !== null && boundaryPosition.value.x.movement > 0 && targetIndex.value > 0) {
-                targetIndex.value--
-            } else {
-                restoreStatus()
-            }
-        } else {
-            commitClose()
         }
-        //清空这次滑动后记录的坐标位移
-        boundaryPosition.value.x.movement = null
-        boundaryPosition.value.y.movement = null
-        boundaryPosition.value.x.status = false
-        boundaryPosition.value.y.status = false
         isMouseDown.value = false
     }
 }
@@ -267,6 +309,18 @@ const maskBackgroundColor = computed(() => (value: Number): string => `rgba(0, 0
     top: 0;
     display: flex;
     justify-content: space-between;
+    background-color: rgba(255, 255, 255, 0.2);
+}
+.image-view-mask .top-function .index {
+    padding-left: 12px;
+    height: inherit;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+}
+.image-view-mask .top-function .index span {
+    color: white;
 }
 .image-view-mask .top-function .close {
     width: 42px;
