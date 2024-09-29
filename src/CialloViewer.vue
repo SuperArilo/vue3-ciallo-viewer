@@ -35,7 +35,7 @@
                     }"/>
             </li>
         </ul>
-        <div class="top-function">
+        <div class="top-function" ref="topFunction">
             <div class="index">
                 <span>{{ targetIndex + 1 }}</span>
                 <span>/</span>
@@ -52,6 +52,7 @@ import CialloItem from "./components/CialloItem.vue"
 import {BuildTransition, SetElementStyle} from "./util/PublicFunction"
 import {UnmountTargetViewer} from "./index"
 const mask = ref<HTMLElement | null>(null)
+const topFunction = ref<HTMLElement | null>(null)
 const props = withDefaults(defineProps<ListViewerProps>(), {
     duration: 300,
     targetIndex: 0
@@ -109,11 +110,15 @@ const commitClose = () => {
     isMouseDown.value = false
     status.value = false
     window.requestAnimationFrame(() => {
-        if (!mask.value) return
+        if (!mask.value || !topFunction.value) return
         SetElementStyle({
             backgroundColor: maskBackgroundColor.value(0),
             transition: BuildTransition.value([{ type: 'background', duration: props.duration }])
         }, mask.value)
+        SetElementStyle({
+            opacity: '0',
+            transition: BuildTransition.value([{ type: 'opacity', duration: props.duration }])
+        }, topFunction.value)
     })
     setTimeout(() => {
         UnmountTargetViewer()
@@ -195,8 +200,9 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
         afterOffset.value.y = clampedY
         if(!boundaryPosition.value.x.status && scaleFactor.value == 1) {
             window.requestAnimationFrame(() => {
-                if (mask.value) {
+                if (mask.value && topFunction.value) {
                     mask.value.style.backgroundColor = maskBackgroundColor.value(1 - yRatio * 2)
+                    topFunction.value.style.opacity = `${1 - yRatio * 2}`
                 }
             })
         }
@@ -309,7 +315,6 @@ const maskBackgroundColor = computed(() => (value: Number): string => `rgba(0, 0
     top: 0;
     display: flex;
     justify-content: space-between;
-    background-color: rgba(255, 255, 255, 0.2);
 }
 .image-view-mask .top-function .index {
     padding-left: 12px;
