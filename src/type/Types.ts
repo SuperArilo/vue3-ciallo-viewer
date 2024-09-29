@@ -57,8 +57,10 @@ export interface CialloItemProps  {
     duration?: number
     targetIndex?: number | null
     rawObject: HTMLImageElement
-    preX: number
-    preY: number
     x: number
     y: number
+    scaleFactor: number
+    isMouseDown: boolean
+    movementX: number | null
+    movementY: number | null
 }
