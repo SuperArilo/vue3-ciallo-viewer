@@ -321,6 +321,7 @@ const maskBackgroundColor = computed(() => (value: Number): string => `rgba(0, 0
     top: 0;
     display: flex;
     justify-content: space-between;
+    background-color: rgba(255, 255, 255, 0.1);
 }
 .image-view-mask .top-function .index {
     padding-left: 12px;
