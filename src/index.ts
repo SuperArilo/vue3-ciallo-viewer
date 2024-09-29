@@ -8,7 +8,7 @@ export const CialloViewer = (array: HTMLCollection, targetIndex: number | null =
     if(container == null) {
         container = document.createElement('div')
         container.setAttribute("type", 'ciallo-viewer')
-        container.setAttribute('id', `'ciallo-viewer-${(Math.random() * 100000).toFixed(0)}`)
+        container.setAttribute('id', `ciallo-viewer-${(Math.random() * 100000).toFixed(0)}`)
         document.body.appendChild(container)
     }
     const vNode = createVNode(ListViewer, { images: array, targetIndex: targetIndex, duration: duration })
