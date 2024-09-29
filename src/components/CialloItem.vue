@@ -118,11 +118,12 @@ watch(() => props.status, e => {
 })
 watch(() => props.scaleFactor, e => {
     if(props.isMouseDown && instance.value) {
+        changeStatus = true
         if(BoxStyle.value.transition !== '' || instance.value.style.transition !== '') {
             BoxStyle.value.transition = ''
             instance.value.style.transition = ''
         }
-        instance.value.style.transform = `scale(${e})`;
+        instance.value.style.transform = `scale(${e})`
     }
 })
 watch(() => props.isMouseDown, e => {
@@ -158,8 +159,7 @@ watch(() => props.isMouseDown, e => {
         }
         const y1 = centerPosition.y - rect.y
         const y2 = window.innerHeight - rect.height + centerPosition.y - rect.y
-        const isOverLay :boolean = rect.height > window.innerHeight
-        if(isOverLay) {
+        if(rect.height > window.innerHeight) {
             if(rect.y > 0 && props.movementY > 0) {
                 // top
                 centerPosition.y = y1
@@ -167,7 +167,7 @@ watch(() => props.isMouseDown, e => {
                 // bottom
                 centerPosition.y = y2
             }
-        } else if(rect.height <= window.innerHeight) {
+        } else {
             centerPosition.y = window.innerHeight / 2 - instance.value.clientHeight  / 2
         }
         BoxStyle.value.transform = BuildMatrix.value(1, 0, 0, 1, centerPosition.x, centerPosition.y)
