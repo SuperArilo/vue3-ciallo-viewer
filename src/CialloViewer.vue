@@ -100,9 +100,15 @@ const restoreStatus = () => {
     window.requestAnimationFrame(() => {
         afterOffset.value.x = 0
         afterOffset.value.y = 0
-        if(mask.value) {
-            mask.value.style.transition = BuildTransition.value([{ type: 'background-color', duration: props.duration }])
-            mask.value.style.backgroundColor = maskBackgroundColor.value(1)
+        if(mask.value && topFunction.value) {
+            SetElementStyle({
+                backgroundColor:  maskBackgroundColor.value(1),
+                transition: BuildTransition.value([{ type: 'background-color', duration: props.duration }])
+            }, mask.value)
+            SetElementStyle({
+                opacity: '1',
+                transition: BuildTransition.value([{ type: 'opacity', duration: props.duration }])
+            }, topFunction.value)
         }
     })
 }
