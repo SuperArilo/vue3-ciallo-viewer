@@ -13,7 +13,7 @@
 import {CialloItemProps} from "../type/Types"
 import {BuildTransition, ImageRatio, BuildMatrix} from "../util/PublicFunction"
 import {errorPng} from '../util/PublicData'
-import {CSSProperties, ref, watch, onBeforeMount} from "vue"
+import {CSSProperties, ref, watch, onBeforeMount, onMounted} from "vue"
 const props = withDefaults(defineProps<CialloItemProps>(), {
     duration: 300,
     status: true,
@@ -47,13 +47,6 @@ const handleLoad = (event: Event): void => {
         PreInitFunction(element)
     }
     if(props.index !== props.targetIndex) return
-    if (element.decode) {
-        element.decoding = 'async'
-        BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
-        element.decode().then(() => BoxStyle.value.transform = BuildMatrix(1, 0, 0, 1, centerPosition.x, centerPosition.y))
-    } else {
-        window.requestAnimationFrame(() => BoxStyle.value.transform = BuildMatrix(1, 0, 0, 1, centerPosition.x, centerPosition.y))
-    }
 }
 const handleError = (event: Event): void => {
     const element = event.currentTarget as HTMLImageElement
@@ -87,6 +80,16 @@ onBeforeMount(() => {
     if(props.index !== props.targetIndex) return
     const preRect = props.rawObject.getBoundingClientRect()
     BoxStyle.value.transform = BuildMatrix(preInstanceRatio, 0, 0, preInstanceRatio, preRect.x, preRect.y)
+})
+onMounted(() => {
+    if(instance.value == null) return
+    BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
+    if (instance.value.decode) {
+        instance.value.decoding = 'async'
+        instance.value.decode().then(() => BoxStyle.value.transform = BuildMatrix(1, 0, 0, 1, centerPosition.x, centerPosition.y))
+    } else {
+        window.requestAnimationFrame(() => BoxStyle.value.transform = BuildMatrix(1, 0, 0, 1, centerPosition.x, centerPosition.y))
+    }
 })
 defineExpose({
     reSetImageStatus
