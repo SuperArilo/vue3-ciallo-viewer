@@ -48,7 +48,7 @@
 import {BoundaryPosition, ListViewerProps} from "./type/Types"
 import {computed, CSSProperties, onBeforeMount, onBeforeUnmount, onMounted, ref} from "vue"
 import CialloItem from "./components/CialloItem.vue"
-import {BuildTransition, SetElementStyle} from "./util/PublicFunction"
+import {BuildTransition, isCloseTo, SetElementStyle} from "./util/PublicFunction"
 import {UnmountTargetViewer} from "./index"
 const mask = ref<HTMLElement | null>(null)
 const topFunction = ref<HTMLElement | null>(null)
@@ -218,7 +218,7 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
 }
 const handleUpEvent = (): void => {
     if(status.value) {
-        if(!boundaryPosition.value.y.status && !boundaryPosition.value.x.status && scaleFactor.value == 1) {
+        if(!boundaryPosition.value.y.status && !boundaryPosition.value.x.status && isCloseTo(scaleFactor.value, 1)) {
             restoreStatus()
         } else if(boundaryPosition.value.x.status) {
             //切换下一张
@@ -233,7 +233,7 @@ const handleUpEvent = (): void => {
             } else {
                 restoreStatus()
             }
-        } else if(scaleFactor.value == 1) {
+        } else if(isCloseTo(scaleFactor.value, 1)) {
             commitClose()
         }
         //清空这次滑动后记录的坐标位移
