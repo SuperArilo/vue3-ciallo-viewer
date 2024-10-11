@@ -5,7 +5,7 @@
       "incremental": true,
       "module": "NodeNext",
       "declaration": true,
-      "declarationMap": true,
+      "declarationMap": false,
       "outDir": "dist",
       "strict": true,
       "rootDir": "src",
