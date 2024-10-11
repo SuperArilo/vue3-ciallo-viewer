@@ -1,6 +1,7 @@
 <template>
     <div
         ref="mask"
+        :style="maskStyle"
         class="image-view-mask"
         @mousedown.prevent="handleDownEvent"
         @mousemove.prevent="handleMoveEvent"
@@ -26,8 +27,6 @@
                     :targetIndex="targetIndex"
                     :scaleFactor="targetIndex === index ? scaleFactor: 1"
                     :isMouseDown="isMouseDown"
-                    :movement-x="boundaryPosition.x.movement"
-                    :movement-y="boundaryPosition.y.movement"
                     @handleRestore="() => {
                         if(targetIndex == index) {
                             scaleFactor = 1
@@ -47,7 +46,7 @@
 </template>
 <script setup lang="ts">
 import {BoundaryPosition, ListViewerProps} from "./type/Types"
-import {computed, onBeforeUnmount, onMounted, ref} from "vue"
+import {computed, CSSProperties, onBeforeMount, onBeforeUnmount, onMounted, ref} from "vue"
 import CialloItem from "./components/CialloItem.vue"
 import {BuildTransition, SetElementStyle} from "./util/PublicFunction"
 import {UnmountTargetViewer} from "./index"
@@ -56,6 +55,10 @@ const topFunction = ref<HTMLElement | null>(null)
 const props = withDefaults(defineProps<ListViewerProps>(), {
     duration: 300,
     targetIndex: 0
+})
+const maskStyle = ref<CSSProperties>({
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    transition: BuildTransition.value([{ type: 'background-color', duration: props.duration }])
 })
 //imagesRefs 列表，用于获取里面的更新图片的宽高方法
 const imageRefs = ref<any>()
@@ -92,7 +95,8 @@ let isHandleResize: boolean = false
 let initialDistance: number = 0
 //实际放大的倍数
 const scaleFactor = ref<number>(1)
-
+//保存的上一次放大倍数
+let initialScale: number = 0
 //恢复初始状态
 const restoreStatus = () => {
     prePosition.x = 0
@@ -100,11 +104,9 @@ const restoreStatus = () => {
     window.requestAnimationFrame(() => {
         afterOffset.value.x = 0
         afterOffset.value.y = 0
-        if(mask.value && topFunction.value) {
-            SetElementStyle({
-                backgroundColor:  maskBackgroundColor.value(1),
-                transition: BuildTransition.value([{ type: 'background-color', duration: props.duration }])
-            }, mask.value)
+        maskStyle.value.backgroundColor = maskBackgroundColor.value(1)
+        maskStyle.value.transition = BuildTransition.value([{ type: 'background-color', duration: props.duration }])
+        if(topFunction.value) {
             SetElementStyle({
                 opacity: '1',
                 transition: BuildTransition.value([{ type: 'opacity', duration: props.duration }])
@@ -116,11 +118,9 @@ const commitClose = () => {
     isMouseDown.value = false
     status.value = false
     window.requestAnimationFrame(() => {
-        if (!mask.value || !topFunction.value) return
-        SetElementStyle({
-            backgroundColor: maskBackgroundColor.value(0),
-            transition: BuildTransition.value([{ type: 'background', duration: props.duration }])
-        }, mask.value)
+        if (!topFunction.value) return
+        maskStyle.value.backgroundColor = maskBackgroundColor.value(0)
+        maskStyle.value.transition = BuildTransition.value([{ type: 'background', duration: props.duration }])
         SetElementStyle({
             opacity: '0',
             transition: BuildTransition.value([{ type: 'opacity', duration: props.duration }])
@@ -135,8 +135,8 @@ const handleDownEvent = (e: MouseEvent | TouchEvent): void => {
         const target = e.target as HTMLElement
         if (target.localName === 'img') {
             if(e instanceof MouseEvent) {
-                prePosition.x = e.clientX
-                prePosition.y = e.clientY
+                prePosition.x = e.x
+                prePosition.y = e.y
             } else if (e instanceof TouchEvent) {
                 const to = e.touches
                 if(to.length == 1) {
@@ -146,13 +146,12 @@ const handleDownEvent = (e: MouseEvent | TouchEvent): void => {
                 } else if(to.length == 2) {
                     const touch1 = to[0]
                     const touch2 = to[1]
-                    initialDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY)
+                    initialDistance = parseFloat((Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY)).toFixed(2))
+                    initialScale = scaleFactor.value
                 }
             }
             isMouseDown.value = true
-            if (mask.value) {
-                mask.value.style.transition = ''
-            }
+            maskStyle.value.transition = BuildTransition.value([{ type: 'background-color', duration: 0 }])
             if (e instanceof MouseEvent) {
                 e.preventDefault()
             }
@@ -165,49 +164,51 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
         if (!isMouseDown.value) return
         let clampedX: number = 0, clampedY: number = 0
         if(e instanceof MouseEvent) {
-            clampedX = afterOffset.value.x + e.clientX - prePosition.x
-            clampedY = afterOffset.value.y + e.clientY - prePosition.y
-            boundaryPosition.value.x.movement = e.movementX
-            boundaryPosition.value.y.movement = e.movementY
-            prePosition.x = e.clientX
-            prePosition.y = e.clientY
+            clampedX = e.x - prePosition.x
+            clampedY = e.y - prePosition.y
         } else if(e instanceof TouchEvent) {
             const a = e.touches
             if(a.length == 1) {
                 const touch = e.touches[0]
                 clampedX = touch.clientX - prePosition.x
                 clampedY = touch.clientY - prePosition.y
-                boundaryPosition.value.y.movement = touch.clientY - prePosition.y > 0 ? 1:-1
-                boundaryPosition.value.x.movement = touch.clientX - prePosition.x > 0 ? 1:-1
             } else if(a.length == 2) {
                 const touch1 = a[0]
                 const touch2 = a[1]
-                // 计算当前两指的距离
-                const currentDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY)
-                const value = Math.abs(currentDistance / initialDistance - 1)
-                if (currentDistance > initialDistance) {
-                    //放大
-                    scaleFactor.value += value * 0.05
-                } else {
-                    //缩小
-                    scaleFactor.value -= value * 0.3
-                }
-                scaleFactor.value = parseFloat(Math.max(0.5, Math.min(5, scaleFactor.value)).toFixed(3))
+                // 计算当前两指的距离比值
+                const value = Math.abs(Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY) / initialDistance)
+                scaleFactor.value = parseFloat(Math.max(0.5, Math.min(5, initialScale * value)).toFixed(1))
             }
         }
         // 计算比例
         const xRatio = Math.abs(clampedX) / window.innerWidth
         const yRatio = Math.abs(clampedY) / window.innerHeight
-
-        boundaryPosition.value.x.status = xRatio >= 0.1 && yRatio <= 0.05
-        boundaryPosition.value.y.status = yRatio >= 0.1 && xRatio <= 0.2
+        if(e instanceof MouseEvent) {
+            boundaryPosition.value.x.status = xRatio >= 0.1 && yRatio <= 0.05
+            boundaryPosition.value.y.status = yRatio >= 0.2 && xRatio <= 0.05
+        } else if(e instanceof TouchEvent) {
+            boundaryPosition.value.x.status = xRatio >= 0.1 && yRatio <= 0.05
+            boundaryPosition.value.y.status = yRatio >= 0.2 && xRatio <= 0.2
+        }
         // 更新位置
         afterOffset.value.x = clampedX
         afterOffset.value.y = clampedY
+        const rect = (e.target as HTMLImageElement).getBoundingClientRect()
+        if(rect.width > window.innerWidth) {
+            const value = clampedX / window.innerWidth
+            if(value < -0.5 && rect.right <= window.innerWidth) {
+                boundaryPosition.value.x.movement = -1
+            } else if (value > 0.5 && rect.x > 0) {
+                boundaryPosition.value.x.movement = 1
+            }
+        } else {
+            boundaryPosition.value.x.movement = clampedX > 0 ? 1:-1
+        }
+        boundaryPosition.value.y.movement = clampedY > 0 ? 1:-1
         if(!boundaryPosition.value.x.status && scaleFactor.value == 1) {
             window.requestAnimationFrame(() => {
-                if (mask.value && topFunction.value) {
-                    mask.value.style.backgroundColor = maskBackgroundColor.value(1 - yRatio * 2)
+                maskStyle.value.backgroundColor = maskBackgroundColor.value(1 - yRatio * 2)
+                if (topFunction.value) {
                     topFunction.value.style.opacity = `${1 - yRatio * 2}`
                 }
             })
@@ -217,32 +218,35 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
 }
 const handleUpEvent = (): void => {
     if(status.value) {
-        if(scaleFactor.value == 1) {
-            if(!boundaryPosition.value.y.status && !boundaryPosition.value.x.status) {
-                restoreStatus()
-            } else if(boundaryPosition.value.x.status) {
-                //切换下一张
-                if(mask.value !== null) {
-                    mask.value.style.backgroundColor = maskBackgroundColor.value(1)
-                }
-                if(boundaryPosition.value.x.movement !== null && boundaryPosition.value.x.movement < 0 && targetIndex.value >= 0 && props.images.length > 0 && targetIndex.value + 1 < props.images.length) {
-                    targetIndex.value++
-                    //上一张
-                } else if(boundaryPosition.value.x.movement !== null && boundaryPosition.value.x.movement > 0 && targetIndex.value > 0) {
-                    targetIndex.value--
-                } else {
-                    restoreStatus()
-                }
+        if(!boundaryPosition.value.y.status && !boundaryPosition.value.x.status && scaleFactor.value == 1) {
+            restoreStatus()
+        } else if(boundaryPosition.value.x.status) {
+            //切换下一张
+            maskStyle.value.backgroundColor = maskBackgroundColor.value(1)
+            if(boundaryPosition.value.x.movement !== null && boundaryPosition.value.x.movement < 0 && targetIndex.value >= 0 && props.images.length > 0 && targetIndex.value + 1 < props.images.length) {
+                targetIndex.value++
+                scaleFactor.value = 1
+                //上一张
+            } else if(boundaryPosition.value.x.movement !== null && boundaryPosition.value.x.movement > 0 && targetIndex.value > 0) {
+                targetIndex.value--
+                scaleFactor.value = 1
             } else {
-                commitClose()
+                restoreStatus()
             }
-            //清空这次滑动后记录的坐标位移
-            boundaryPosition.value.x.status = false
-            boundaryPosition.value.y.status = false
+        } else if(scaleFactor.value == 1) {
+            commitClose()
+        }
+        //清空这次滑动后记录的坐标位移
+        boundaryPosition.value.x.status = false
+        boundaryPosition.value.y.status = false
+        boundaryPosition.value.x.movement = null
+        if(scaleFactor.value == 1) {
             afterOffset.value.x = 0
             afterOffset.value.y = 0
         }
+
         isMouseDown.value = false
+        initialScale = scaleFactor.value
     }
 }
 //检查鼠标是否移动到文档外
@@ -260,34 +264,47 @@ const handleResize = () => {
     }
     isHandleResize = false
 }
+const handleWheel = (e: WheelEvent) => {
+    e.preventDefault()
+    const zoomSpeed = 0.05
+    const zoomDelta = Math.sign(e.deltaY) * zoomSpeed
+    const newScaleFactor = scaleFactor.value - zoomDelta
+    if (newScaleFactor > 5) {
+        scaleFactor.value = 5
+    } else if (newScaleFactor < 1) {
+        scaleFactor.value = 1
+    } else {
+        scaleFactor.value = newScaleFactor
+    }
+}
+
+
+onBeforeMount(() => {
+    document.addEventListener('mouseup', handleIsMouseOverWindow, true)
+    document.addEventListener('touchend', handleIsMouseOverWindow, true)
+    window.addEventListener('resize', handleResize, true)
+})
 onMounted(() => {
     document.body.style.overflow = 'hidden'
     if(props.targetIndex == null) {
         targetIndex.value = 0
     }
     if(!mask.value) return
-    SetElementStyle({
-        backgroundColor: maskBackgroundColor.value(0),
-        transition: BuildTransition.value([{ type: 'background', duration: props.duration }])
-    }, mask.value)
-    window.requestAnimationFrame(() => {
-        if(!mask.value) return
-        SetElementStyle({ backgroundColor: maskBackgroundColor.value(1) }, mask.value)
-    })
-    document.addEventListener('mouseup', handleIsMouseOverWindow)
-    document.addEventListener('touchend', handleIsMouseOverWindow)
-    window.addEventListener('resize', handleResize)
+    mask.value.addEventListener('wheel', handleWheel)
+
+    window.requestAnimationFrame(() => maskStyle.value.backgroundColor = maskBackgroundColor.value(1))
+
 })
 onBeforeUnmount(() => {
-    document.removeEventListener('mouseup', handleIsMouseOverWindow)
-    document.removeEventListener('touchend', handleIsMouseOverWindow)
-    window.removeEventListener('resize', handleResize)
+    document.removeEventListener('mouseup', handleIsMouseOverWindow, true)
+    document.removeEventListener('touchend', handleIsMouseOverWindow, true)
+    window.removeEventListener('resize', handleResize, true)
     document.body.style.overflow = ''
 })
 //返回mask的背景颜色设置
 const maskBackgroundColor = computed(() => (value: Number): string => `rgba(0, 0, 0, ${value})`)
 </script>
-<style scoped>
+<style lang="scss" scoped>
 .image-view-mask {
     position: fixed;
     width: 100%;
@@ -297,49 +314,58 @@ const maskBackgroundColor = computed(() => (value: Number): string => `rgba(0, 0
     z-index: 10000;
     user-select: none;
     will-change: background-color;
-}
-.image-view-mask ul {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-wrap: nowrap;
-    margin: 0;
-    padding: 0;
-}
-.image-view-mask ul li {
-    width: 100%;
-    list-style: none;
-    flex: none;
-    overflow: hidden;
-    position: relative;
-}
-.image-view-mask .top-function {
-    width: 100%;
-    height: 42px;
-    position: absolute;
-    right: 0;
-    top: 0;
-    display: flex;
-    justify-content: space-between;
-    background-color: rgba(255, 255, 255, 0.1);
-}
-.image-view-mask .top-function .index {
-    padding-left: 12px;
-    height: inherit;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 6px;
-}
-.image-view-mask .top-function .index span {
-    color: white;
-}
-.image-view-mask .top-function .close {
-    width: 42px;
-    height: inherit;
-    position: relative;
-    z-index: 1;
-    cursor: pointer;
+    ul {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-wrap: nowrap;
+        margin: 0;
+        padding: 0;
+        position: relative;
+        z-index: 2;
+        li {
+            width: 100%;
+            list-style: none;
+            flex: none;
+            overflow: hidden;
+            position: relative;
+        }
+    }
+    .top-function {
+        width: 100%;
+        height: 42px;
+        position: absolute;
+        right: 0;
+        top: 0;
+        display: flex;
+        justify-content: space-between;
+        background-color: rgba(255, 255, 255, 0.1);
+        z-index: 3;
+        .index {
+            padding-left: 12px;
+            height: inherit;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            span {
+                color: white;
+            }
+        }
+        .close {
+            width: 42px;
+            height: inherit;
+            position: relative;
+            z-index: 1;
+            cursor: pointer;
+            &:before {
+                transform: translate(-50%, -50%) rotate(45deg);
+            }
+            &:after {
+                transform: translate(-50%, -50%) rotate(-45deg);
+            }
+        }
+    }
 }
 .image-view-mask .top-function .close:before, .image-view-mask .top-function .close:after {
     content: '';
@@ -352,11 +378,5 @@ const maskBackgroundColor = computed(() => (value: Number): string => `rgba(0, 0
     height: 2px;
     border-radius: 10px;
     overflow: hidden;
-}
-.image-view-mask .top-function .close:before {
-    transform: translate(-50%, -50%) rotate(45deg);
-}
-.image-view-mask .top-function .close:after {
-    transform: translate(-50%, -50%) rotate(-45deg);
 }
 </style>

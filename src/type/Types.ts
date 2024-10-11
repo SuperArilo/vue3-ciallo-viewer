@@ -44,6 +44,4 @@ export interface CialloItemProps  {
     y: number
     scaleFactor: number
     isMouseDown: boolean
-    movementX: number | null
-    movementY: number | null
 }

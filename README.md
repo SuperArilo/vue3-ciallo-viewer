@@ -6,7 +6,7 @@
 **Mobile devices support zooming in and out ✔**
 
 ![effect1](https://github.com/SuperArilo/vue3-ciallo-viewer/blob/main/gif/2.gif?raw=true)
-
+![effect1](https://github.com/SuperArilo/vue3-ciallo-viewer/blob/main/gif/1.gif?raw=true)
 
 ## Install
 
