@@ -32,6 +32,7 @@ export interface ListViewerProps {
     images: HTMLCollection
     targetIndex?: number
     duration?: number
+    zoomSpeed: number
 }
 export interface CialloItemProps  {
     src: string
