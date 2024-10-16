@@ -151,19 +151,15 @@ const boundaryCalculation = (element: HTMLImageElement): void => {
     // Y 轴边界判断
     if (rect.height > windowHeight) {
         // 如果图片超出屏幕高度
-        console.log(1)
         if (rect.y > 0) {
             // 判断图片顶部是否超出上边界
-            console.log(2)
             newY -= rect.y
         } else if (rect.bottom <= windowHeight) {
             // 判断图片底部是否超出下边界
-            console.log(3)
             newY = windowHeight - rect.height + newY - rect.y
         }
     } else {
         // 图片高度小于屏幕高度时，居中处理
-        console.log(4)
         newY = windowHeight / 2 - rect.height / 2
     }
     // 如果新的位置与当前不一样，才进行更新
@@ -176,8 +172,7 @@ const boundaryCalculation = (element: HTMLImageElement): void => {
 defineExpose({
     reSetImageStatus,
     boxStyle: BoxStyle,
-    centerPosition: centerPosition,
-    boundaryCalculation
+    centerPosition: centerPosition
 })
 </script>
 <style lang="scss">
