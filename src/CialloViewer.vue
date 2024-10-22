@@ -107,6 +107,7 @@ let
 const restoreStatus = () => {
     prePosition.x = 0
     prePosition.y = 0
+    isMouseDown.value = false
     window.requestAnimationFrame(() => {
         afterOffset.value.x = 0
         afterOffset.value.y = 0
@@ -266,7 +267,6 @@ const handleUpEvent = (): void => {
             afterOffset.value.x = 0
             afterOffset.value.y = 0
         }
-
         isMouseDown.value = false
         initialScale = scaleFactor.value
     }
@@ -274,7 +274,7 @@ const handleUpEvent = (): void => {
 //检查鼠标是否移动到文档外
 const handleIsMouseOverWindow = (e: MouseEvent | TouchEvent): void => {
     if(e instanceof MouseEvent && (e.clientY < 0 || e.clientY > window.innerHeight || e.clientX < 0 || e.clientX > window.innerWidth)) {
-        commitClose()
+        restoreStatus()
     }
 }
 //窗口变化
@@ -303,11 +303,14 @@ const handleWheel = (e: WheelEvent) => {
         box.centerPosition.y
     )
     lastScale = scaleFactor.value
+    if(scaleFactor.value == 1) {
+        box.reSetImageStatus()
+    }
 }
 onBeforeMount(() => {
-    document.addEventListener('mouseup', handleIsMouseOverWindow, true)
-    document.addEventListener('touchend', handleIsMouseOverWindow, true)
-    window.addEventListener('resize', handleResize, true)
+    document.addEventListener('mouseup', handleIsMouseOverWindow, { passive: false })
+    document.addEventListener('touchend', handleIsMouseOverWindow, { passive: false })
+    window.addEventListener('resize', handleResize, { passive: false })
 })
 onMounted(() => {
     document.body.style.overflow = 'hidden'
@@ -319,9 +322,9 @@ onMounted(() => {
 
 })
 onBeforeUnmount(() => {
-    document.removeEventListener('mouseup', handleIsMouseOverWindow, true)
-    document.removeEventListener('touchend', handleIsMouseOverWindow, true)
-    window.removeEventListener('resize', handleResize, true)
+    document.removeEventListener('mouseup', handleIsMouseOverWindow)
+    document.removeEventListener('touchend', handleIsMouseOverWindow)
+    window.removeEventListener('resize', handleResize)
     document.body.style.overflow = ''
 })
 //返回mask的背景颜色设置
@@ -362,7 +365,7 @@ const maskBackgroundColor = computed(() => (value: Number): string => `rgba(0, 0
         top: 0;
         display: flex;
         justify-content: space-between;
-        background-color: rgba(255, 255, 255, 0.1);
+        background-color: rgba(0, 0, 0, 0.5);
         z-index: 3;
         .index {
             padding-left: 12px;
