@@ -9,7 +9,6 @@ import {errorPng} from '../util/PublicData'
 import {CSSProperties, ref, watch, onBeforeMount, onMounted} from "vue"
 const props = withDefaults(defineProps<CialloItemProps>(), {
     duration: 300,
-    status: true,
     scaleFactor: 0
 })
 const emits = defineEmits(['handleRestore'])
@@ -19,12 +18,8 @@ let
     aspectRatio = props.rawObject.naturalWidth / props.rawObject.naturalHeight,
     errorStatus:boolean = false,
     preInstanceRatio: any = { w: 0, h: 0 }
-const
-    //记录的图片位于屏幕上的中心坐标
-    centerPosition = {
-        x: 0,
-        y: 0
-    }
+//记录的图片位于屏幕上的中心坐标
+const centerPosition = { x: 0, y: 0 }
 const BoxStyle = ref<CSSProperties>({
     transform: '',
     transition: BuildTransition.value([{ type: 'transform', duration: props.duration }])
@@ -67,18 +62,20 @@ onBeforeMount(() => {
         errorStatus = true
     }) as OnErrorEventHandler
     PreInitFunction(props.rawObject)
-    if(props.index !== props.targetIndex) return
+    if(props.targetIndex !== props.index) return
     const preRect = props.rawObject.getBoundingClientRect()
     BoxStyle.value.transform = BuildMatrix(preInstanceRatio.w, 0, 0, preInstanceRatio.h, preRect.x, preRect.y)
+
 })
 onMounted(() => {
     if(viewInstance.value == null) return
     viewInstance.value.appendChild(image)
+    const temp = () => window.requestAnimationFrame(() => BoxStyle.value.transform = BuildMatrix(1, 0, 0, 1, centerPosition.x, centerPosition.y))
     if (image.decode) {
         image.decoding = 'async'
-        image.decode().then(() => window.requestAnimationFrame(() => BoxStyle.value.transform = BuildMatrix(1, 0, 0, 1, centerPosition.x, centerPosition.y)))
+        image.decode().then(() => temp()).catch(() => temp())
     } else {
-        window.requestAnimationFrame(() => BoxStyle.value.transform = BuildMatrix(1, 0, 0, 1, centerPosition.x, centerPosition.y))
+        temp()
     }
 })
 watch(() => [props.x, props.y], e => {
@@ -87,19 +84,8 @@ watch(() => [props.x, props.y], e => {
         BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: e[0] === 0 && e[1] === 0 ? props.duration:0 }])
     }
 })
-watch(() => props.status, e => {
-    if(!e && props.index === props.targetIndex && !props.isMouseDown) {
-        image.style.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
-        window.requestAnimationFrame(() => {
-            PreInitFunction(props.rawObject)
-            BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
-            const preRect = props.rawObject.getBoundingClientRect()
-            BoxStyle.value.transform = BuildMatrix(preInstanceRatio.w, 0, 0, preInstanceRatio.h, preRect.x, preRect.y)
-        })
-    }
-})
 watch(() => props.isMouseDown, e => {
-    if(!e && props.status && props.scaleFactor <= 1) {
+    if(!e && props.scaleFactor <= 1) {
         centerPosition.x = window.innerWidth / 2 - image.clientWidth / 2
         centerPosition.y = window.innerHeight / 2 - image.clientHeight  / 2
         BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
@@ -107,66 +93,51 @@ watch(() => props.isMouseDown, e => {
         emits('handleRestore', null)
     }
 })
-watch(() => props.isMouseDown, e => {
-    if(!e && props.scaleFactor > 1) {
-        BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
-        //判断是否是无效运动，节省性能
-        if(Math.abs(props.x) > 1) {
-            centerPosition.x += props.x
-        }
-        if(Math.abs(props.y) > 1) {
-            centerPosition.y += props.y
-        }
-        boundaryCalculation(image)
-    }
-})
-//图片边界计算，放大后计算是否超出边界，缩小后是否以中心位置为基础
-const boundaryCalculation = (element: HTMLImageElement): void => {
-    if (!element) return
-    const rect = element.getBoundingClientRect()
-    const windowWidth = window.innerWidth
-    const windowHeight = window.innerHeight
-    let newX = centerPosition.x
-    let newY = centerPosition.y
+// 图片边界计算，放大后计算是否超出边界，缩小后是否以中心位置为基础
+const boundaryCalculation = (): void => {
+    BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
+    const rect = image.getBoundingClientRect()
     // X 轴边界判断
-    if (rect.width > windowWidth) {
+    if (rect.width > window.innerWidth) {
         // 如果图片超出屏幕宽度
-        if (rect.x + Math.abs(props.x) > 0) {
+        if (rect.x > 0) {
             // 判断图片左侧是否超出左边界
-            newX -= rect.x
-        } else if (rect.right <= windowWidth) {
+            centerPosition.x = 0
+        } else if (rect.right < window.innerWidth) {
             // 判断图片右侧是否超出右边界
-            newX = windowWidth - rect.width + newX - rect.x
+            centerPosition.x = window.innerWidth - rect.width
         }
     } else {
         // 图片宽度小于屏幕宽度时，居中处理
-        newX = windowWidth / 2 - element.clientWidth / 2
+        centerPosition.x = window.innerWidth / 2 - rect.width / 2
     }
-    // Y 轴边界判断
-    if (rect.height > windowHeight) {
+    // // Y 轴边界判断
+    if (rect.height > window.innerHeight) {
         // 如果图片超出屏幕高度
         if (rect.y > 0) {
             // 判断图片顶部是否超出上边界
-            newY -= rect.y
-        } else if (rect.bottom <= windowHeight) {
+            centerPosition.y = 0
+        } else if (rect.bottom <= window.innerHeight) {
             // 判断图片底部是否超出下边界
-            newY = windowHeight - rect.height + newY - rect.y
+            centerPosition.y = window.innerHeight - rect.height
         }
     } else {
         // 图片高度小于屏幕高度时，居中处理
-        newY = windowHeight / 2 - rect.height / 2
+        centerPosition.y = window.innerHeight / 2 - rect.height / 2
     }
-    // 如果新的位置与当前不一样，才进行更新
-    if (newX !== centerPosition.x || newY !== centerPosition.y) {
-        centerPosition.x = newX
-        centerPosition.y = newY
-        BoxStyle.value.transform = BuildMatrix(props.scaleFactor, 0, 0, props.scaleFactor, centerPosition.x, centerPosition.y);
-    }
+    BoxStyle.value.transform = BuildMatrix(props.scaleFactor, 0, 0, props.scaleFactor, centerPosition.x, centerPosition.y)
+}
+const close = () => {
+    BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
+    const preRect = props.rawObject.getBoundingClientRect()
+    BoxStyle.value.transform = BuildMatrix(errorStatus ? 0.01:preInstanceRatio.w, 0, 0, errorStatus ? 0.01:preInstanceRatio.h, preRect.x, preRect.y)
 }
 defineExpose({
     reSetImageStatus,
     boxStyle: BoxStyle,
-    centerPosition: centerPosition
+    centerPosition: centerPosition,
+    close: close,
+    boundaryCalculation: boundaryCalculation
 })
 </script>
 <style lang="scss">
