@@ -16,21 +16,11 @@
                     ref="imageRefs"
                     :index="index"
                     :src="(item as HTMLImageElement).src"
-                    :x="targetIndex === index ? afterOffset.x:0"
-                    :y="targetIndex === index ? afterOffset.y:0"
                     :duration="props.duration"
                     :rawObject="props.images[index] as HTMLImageElement"
                     :targetIndex="targetIndex"
                     :scaleFactor="targetIndex === index ? scaleFactor: 1"
-                    :isMouseDown="isMouseDown"
-                    @handleRestore="() => {
-                        if(targetIndex == index) {
-                            scaleFactor = 1
-                            initialScale = 1
-                            lastScale = 1
-                            initialDistance = 0
-                        }
-                    }"/>
+                    :isMouseDown="isMouseDown" />
             </li>
         </ul>
         <div class="top-function" ref="topFunction">
@@ -38,42 +28,38 @@
                 <span>{{ targetIndex + 1 }}</span>
                 <span>/</span>
                 <span>{{imageRefs?.length}}</span>
+                <span>{{scaleFactor}}</span>
             </div>
             <div class="close" @click="commitClose" @touchstart.passive="commitClose"></div>
         </div>
+        <div ref="arrowLeft" v-if="targetIndex !== 0 && !isMobile" class="left-arrow" @click="prev()"></div>
+        <div ref="arrowRight" v-if="targetIndex !== (props.images.length - 1) && !isMobile" class="right-arrow" @click="next()"></div>
     </div>
 </template>
 <script setup lang="ts">
-import {BoundaryPosition, ListViewerProps} from "./type/Types"
-import {CSSProperties, onBeforeMount, onBeforeUnmount, onMounted, ref} from "vue"
+import {BoundaryPosition, CialloItemExpose, ListViewerProps, Position} from "./type/Types"
+import {CSSProperties, nextTick, onBeforeMount, onBeforeUnmount, onMounted, provide, ref, watch} from "vue"
 import CialloItem from "./components/CialloItem.vue"
 import {BuildMatrix, BuildTransition, SetElementStyle} from "./util/PublicFunction"
 import {UnmountTargetViewer} from "./index"
+const props = withDefaults(defineProps<ListViewerProps>(), { duration: 300, targetIndex: 0 })
 const mask = ref<HTMLElement | null>(null)
 const topFunction = ref<HTMLElement | null>(null)
-const props = withDefaults(defineProps<ListViewerProps>(), {
-    duration: 300,
-    targetIndex: 0
-})
-const maskStyle = ref<CSSProperties>({
-    backgroundColor: 'rgba(0, 0, 0, 0)',
-    transition: BuildTransition.value([{ type: 'background-color', duration: props.duration }])
-})
-const ulStyle = ref<CSSProperties>({
-    transition: `transform ${props.duration}ms`,
-    transform: ''
-})
+const arrowLeft = ref<HTMLElement | null>(null)
+const arrowRight = ref<HTMLElement | null>(null)
+
+const maskStyle = ref<CSSProperties>({ backgroundColor: 'rgba(0, 0, 0, 0)', transition: BuildTransition.value([{ type: 'background-color', duration: props.duration }]) })
+const ulStyle = ref<CSSProperties>({ transition: `transform ${props.duration}ms`, transform: '' })
+//判断是否是 移动设备
+const isMobile = ref<boolean>(false)
 //imagesRefs 列表，用于获取里面的更新图片的宽高方法
-const imageRefs = ref<any>()
+const imageRefs = ref<CialloItemExpose[]>()
 // 通知图片关闭状态 true 开启 false关闭
 const closeStatus = ref<boolean>(false)
 //目标图片索引
 const targetIndex = ref<number>(props.targetIndex)
 //开始鼠标按下的初始坐标，不需要响应式
-const prePosition = {
-    x: 0,
-    y: 0
-}
+const prePosition = { x: 0, y: 0 }
 //鼠标是否按下
 const isMouseDown = ref(false)
 //是否达到边界
@@ -88,15 +74,12 @@ const boundaryPosition = ref<BoundaryPosition>({
     }
 })
 //通知图片产生位移的偏移量
-const afterOffset = ref({
-    x: 0,
-    y: 0
-})
+const afterOffset: Position = { x: 0, y: 0 }
 //实际放大的倍数
 const scaleFactor = ref<number>(1)
+//是否在运行动画
+const isRunning = ref<boolean>(false)
 let
-    //是否在进行handleResize
-    isHandleResize: boolean = false,
     //双指状态，第一次的间距
     initialDistance: number = 0,
     //手指保存的上一次放大倍数
@@ -104,14 +87,18 @@ let
     //是否进入X轴滑动状态
     isXGO: boolean | null = null,
     //放大过程中保存的上一次倍率
-    lastScale: number = 1
+    lastScale: number = 1,
+    //targetIndex ref
+    targetRef: CialloItemExpose
+
+provide('isRunning', isRunning)
 //恢复初始状态
 const restoreStatus = () => {
     prePosition.x = 0
     prePosition.y = 0
     isMouseDown.value = false
-    afterOffset.value.x = 0
-    afterOffset.value.y = 0
+    afterOffset.x = 0
+    afterOffset.y = 0
     window.requestAnimationFrame(() => {
         maskStyle.value.backgroundColor = maskBackgroundColor(1)
         maskStyle.value.transition = BuildTransition.value([{ type: 'background-color', duration: props.duration }])
@@ -121,12 +108,24 @@ const restoreStatus = () => {
                 transition: BuildTransition.value([{ type: 'opacity', duration: props.duration }])
             }, topFunction.value)
         }
+        if(arrowLeft.value) {
+            SetElementStyle({
+                opacity: '1',
+                transition: BuildTransition.value([{ type: 'opacity', duration: props.duration }])
+            }, arrowLeft.value)
+        }
+        if(arrowRight.value) {
+            SetElementStyle({
+                opacity: '1',
+                transition: BuildTransition.value([{ type: 'opacity', duration: props.duration }])
+            }, arrowRight.value)
+        }
     })
     if(isXGO) {
         setUl(targetIndex.value * window.innerWidth, 0)
     } else {
-        const instance = imageRefs.value[targetIndex.value]
-        instance.boundaryCalculation()
+        const instance = imageRefs.value![targetIndex.value]
+        instance.moveToCenter()
     }
     isXGO = null
 
@@ -135,7 +134,7 @@ const commitClose = () => {
     closeStatus.value = true
     isMouseDown.value = false
     window.requestAnimationFrame(() => {
-        imageRefs.value[targetIndex.value].close()
+        imageRefs.value![targetIndex.value].close()
         maskStyle.value.transition = BuildTransition.value([{ type: 'background-color', duration: props.duration }])
         maskStyle.value.backgroundColor = maskBackgroundColor(0)
         if (topFunction.value) {
@@ -144,60 +143,132 @@ const commitClose = () => {
                 transition: BuildTransition.value([{ type: 'opacity', duration: props.duration }])
             }, topFunction.value)
         }
+        if(arrowLeft.value) {
+            SetElementStyle({
+                opacity: '0',
+                transition: BuildTransition.value([{ type: 'opacity', duration: props.duration }])
+            }, arrowLeft.value)
+        }
+        if(arrowRight.value) {
+            SetElementStyle({
+                opacity: '0',
+                transition: BuildTransition.value([{ type: 'opacity', duration: props.duration }])
+            }, arrowRight.value)
+        }
     })
     setTimeout(() => {
         UnmountTargetViewer()
     }, props.duration)
 }
 const handleDownEvent = (e: MouseEvent | TouchEvent): void => {
-    if(closeStatus.value) return
-    const target = e.target as HTMLElement
-    if (target.localName === 'img') {
-        if(e instanceof MouseEvent) {
-            prePosition.x = e.x
-            prePosition.y = e.y
-        } else if (e instanceof TouchEvent) {
-            const to = e.touches
-            if(to.length == 1) {
-                const b = to[0]
-                prePosition.x = b.clientX
-                prePosition.y = b.clientY
-            } else if(to.length == 2) {
-                const touch1 = to[0]
-                const touch2 = to[1]
-                initialDistance = parseFloat((Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY)).toFixed(2))
-                initialScale = scaleFactor.value
-            }
-        }
-        isMouseDown.value = true
-        maskStyle.value.transition = BuildTransition.value([{ type: 'background-color', duration: 0 }])
-        if (e instanceof MouseEvent) {
-            e.preventDefault()
+    e.preventDefault()
+    if(closeStatus.value || (e.target as HTMLElement).localName !== 'img' || isRunning.value) return
+    if(e instanceof MouseEvent) {
+        prePosition.x = e.x
+        prePosition.y = e.y
+    } else if (e instanceof TouchEvent) {
+        const to = e.touches
+        if(to.length == 1) {
+            const b = to[0]
+            prePosition.x = b.clientX
+            prePosition.y = b.clientY
+        } else if(to.length == 2) {
+            const touch1 = to[0]
+            const touch2 = to[1]
+            initialDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY)
+            initialScale = scaleFactor.value
         }
     }
+    maskStyle.value.transition = BuildTransition.value([{ type: 'background-color', duration: 0 }])
+    isMouseDown.value = true
 }
 const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
-    if(closeStatus.value) return
-    if (!isMouseDown.value) return
-    let clampedX: number = 0, clampedY: number = 0
+    if (!isMouseDown.value || closeStatus.value || isRunning.value) return
+    let
+        clampedX: number = 0,
+        clampedY: number = 0,
+        xRatio: number = 0,
+        yRatio: number = 0
     if(e instanceof MouseEvent) {
         clampedX = e.x - prePosition.x
         clampedY = e.y - prePosition.y
+        // 计算比例
+        xRatio = Math.abs(clampedX) / window.innerWidth
+        yRatio = Math.abs(clampedY) / window.innerHeight
+        boundaryPosition.value.x.status = xRatio >= 0.2 && yRatio <= 0.05
+        boundaryPosition.value.y.status = yRatio >= 0.2 && xRatio <= 0.05
+        if(isXGO == null) {
+            isXGO = yRatio < 0.05 && e.movementX !== 0 && scaleFactor.value == 1
+        }
+        if(!isXGO) {
+            // 更新位置
+            targetRef.move(clampedX, clampedY)
+            afterOffset.x = clampedX
+            afterOffset.y = clampedY
+            boundaryPosition.value.y.movement = e.movementY
+            if(scaleFactor.value == 1) {
+                window.requestAnimationFrame(() => {
+                    maskStyle.value.backgroundColor = maskBackgroundColor(1 - yRatio)
+                    if (topFunction.value) {
+                        topFunction.value.style.opacity = `${1 - yRatio}`
+                    }
+                    if(arrowLeft.value) {
+                        arrowLeft.value.style.opacity = `${1 - yRatio}`
+                    }
+                    if(arrowRight.value) {
+                        arrowRight.value.style.opacity = `${1 - yRatio}`
+                    }
+                })
+            }
+        } else {
+            boundaryPosition.value.x.status = xRatio >= 0.2 && yRatio <= 0.05
+            boundaryPosition.value.y.status = yRatio >= 0.2 && xRatio <= 0.2
+            boundaryPosition.value.x.movement = e.movementX
+            ulStyle.value.transition = ''
+            ulStyle.value.transform = `translate(${-(targetIndex.value * window.innerWidth - clampedX)}px, 0px)`
+        }
     } else if(e instanceof TouchEvent) {
         const a = e.touches
         if(a.length == 1) {
             const touch = e.touches[0]
             clampedX = touch.clientX - prePosition.x
             clampedY = touch.clientY - prePosition.y
-        } else if(a.length == 2) {
+            afterOffset.x = clampedX
+            afterOffset.y = clampedY
+            // 计算比例
+            xRatio = Math.abs(clampedX) / window.innerWidth
+            yRatio = Math.abs(clampedY) / window.innerHeight
+            boundaryPosition.value.x.status = xRatio >= 0.2 && yRatio <= 0.05
+            boundaryPosition.value.y.status = yRatio >= 0.2 && xRatio <= 0.2
+            boundaryPosition.value.y.movement = clampedY
+            boundaryPosition.value.x.movement = clampedX
+            if(isXGO == null) {
+                isXGO = yRatio < 0.05 && Math.abs(boundaryPosition.value.x.movement) > 5 && scaleFactor.value == 1
+            } else if(!isXGO) {
+                // 更新位置
+                targetRef.move(clampedX, clampedY)
+                if(scaleFactor.value == 1) {
+                    window.requestAnimationFrame(() => {
+                        maskStyle.value.backgroundColor = maskBackgroundColor(1 - yRatio * 2)
+                        if (topFunction.value) {
+                            topFunction.value.style.opacity = `${1 - yRatio * 2}`
+                        }
+                    })
+                }
+            } else {
+                ulStyle.value.transition = ''
+                ulStyle.value.transform = `translate(${-(targetIndex.value * window.innerWidth - clampedX)}px, 0px)`
+            }
+        } else if(a.length == 2 && !isXGO) {
             const touch1 = a[0]
             const touch2 = a[1]
+            if(initialDistance == 0) return
             // 计算当前两指的距离比值
             const value = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY) / initialDistance
-            scaleFactor.value = Number(Math.max(0.5, Math.min(5, initialScale * value)))
+            scaleFactor.value = Math.max(0.5, Math.min(5, initialScale * value))
             const centerX = (touch1.clientX + touch2.clientX) / 2
             const centerY = (touch1.clientY + touch2.clientY) / 2
-            const box = imageRefs.value[targetIndex.value]
+            const box = imageRefs.value![targetIndex.value]
             const ratio = scaleFactor.value / lastScale
             box.centerPosition.x += (centerX - box.centerPosition.x) * (1 - ratio)
             box.centerPosition.y += (centerY - box.centerPosition.y) * (1 - ratio)
@@ -213,85 +284,34 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
             lastScale = scaleFactor.value
         }
     }
-    // 计算比例
-    const xRatio = Math.abs(clampedX) / window.innerWidth
-    const yRatio = Math.abs(clampedY) / window.innerHeight
-    if(e instanceof MouseEvent) {
-        boundaryPosition.value.x.status = xRatio >= 0.2 && yRatio <= 0.05
-        boundaryPosition.value.y.status = yRatio >= 0.2 && xRatio <= 0.05
-        if(isXGO == null) {
-            isXGO = yRatio < 0.05 && e.movementX !== 0 && scaleFactor.value == 1
-        }
-        if(!isXGO) {
-            // 更新位置
-            afterOffset.value.x = clampedX
-            afterOffset.value.y = clampedY
-            boundaryPosition.value.y.movement = e.movementY
-            if(scaleFactor.value == 1) {
-                window.requestAnimationFrame(() => {
-                    maskStyle.value.backgroundColor = maskBackgroundColor(1 - yRatio * 2)
-                    if (topFunction.value) {
-                        topFunction.value.style.opacity = `${1 - yRatio * 2}`
-                    }
-                })
-            }
-        } else {
-            boundaryPosition.value.x.status = xRatio >= 0.2 && yRatio <= 0.05
-            boundaryPosition.value.y.status = yRatio >= 0.2 && xRatio <= 0.2
-            boundaryPosition.value.x.movement = e.movementX
-            ulStyle.value.transition = ''
-            ulStyle.value.transform = `translate(${-(targetIndex.value * window.innerWidth - clampedX)}px, 0px)`
-        }
-    } else {
-        boundaryPosition.value.x.status = xRatio >= 0.2 && yRatio <= 0.05
-        boundaryPosition.value.y.status = yRatio >= 0.2 && xRatio <= 0.2
-        boundaryPosition.value.y.movement = clampedY
-        boundaryPosition.value.x.movement = clampedX
-        if(isXGO == null) {
-            isXGO = yRatio < 0.05 && Math.abs(boundaryPosition.value.x.movement) > 5 && scaleFactor.value == 1
-        } else if(!isXGO) {
-            // 更新位置
-            afterOffset.value.x = clampedX
-            afterOffset.value.y = clampedY
-            if(scaleFactor.value == 1) {
-                window.requestAnimationFrame(() => {
-                    maskStyle.value.backgroundColor = maskBackgroundColor(1 - yRatio * 2)
-                    if (topFunction.value) {
-                        topFunction.value.style.opacity = `${1 - yRatio * 2}`
-                    }
-                })
-            }
-        } else {
-            ulStyle.value.transition = ''
-            ulStyle.value.transform = `translate(${-(targetIndex.value * window.innerWidth - clampedX)}px, 0px)`
-        }
-    }
 }
-const handleUpEvent = (): void => {
-    if(closeStatus.value) return
+const handleUpEvent = (e: MouseEvent | TouchEvent): void => {
+    if(closeStatus.value || isRunning.value) return
     if(isXGO) {
         if(boundaryPosition.value.x.movement! < 0 && targetIndex.value >= 0 && props.images.length > 0 && targetIndex.value + 1 < props.images.length) {
-            targetIndex.value++
-            scaleFactor.value = 1
+            next()
         } else if(boundaryPosition.value.x.movement! > 0 && targetIndex.value > 0) {
-            targetIndex.value--
-            scaleFactor.value = 1
+            prev()
         } else {
             restoreStatus()
         }
-        setUl(targetIndex.value * window.innerWidth, 0)
     } else {
-        if(scaleFactor.value == 1 && boundaryPosition.value.y.status) {
+        if(scaleFactor.value === 1 && boundaryPosition.value.y.status && !boundaryPosition.value.x.status) {
             commitClose()
+        } else {
+            if(scaleFactor.value === 1) {
+                restoreStatus()
+            }
         }
     }
+    const instance = imageRefs.value![targetIndex.value]
     if(scaleFactor.value > 1) {
-        const instance = imageRefs.value[targetIndex.value]
-        instance.centerPosition.x += afterOffset.value.x
-        instance.centerPosition.y += afterOffset.value.y
-        instance.boundaryCalculation()
-        afterOffset.value.x = 0
-        afterOffset.value.y = 0
+        instance.boundaryCalculation(afterOffset.x, afterOffset.y)
+        afterOffset.x = 0
+        afterOffset.y = 0
+    } else if (e instanceof TouchEvent && scaleFactor.value < 1) {
+        instance.moveToCenter()
+        initScale()
     }
     isMouseDown.value = false
     isXGO = null
@@ -308,18 +328,18 @@ const handleIsMouseOverWindow = (e: MouseEvent | TouchEvent): void => {
 }
 //窗口变化
 const handleResize = () => {
-    if(imageRefs.value == null && !isHandleResize) return
-    isHandleResize = true
-    for(let a of imageRefs.value) {
+    checkIfMobile()
+    initScale()
+    for(let a of imageRefs.value!) {
         a.reSetImageStatus()
+        setUl(targetIndex.value * window.innerWidth, 0, 0)
     }
-    isHandleResize = false
 }
 const handleWheel = (e: WheelEvent) => {
     e.preventDefault()
-    if((e.target as HTMLImageElement).localName !== 'img') return
+    if((e.target as HTMLImageElement).localName !== 'img' || isRunning.value || isXGO) return
     scaleFactor.value = Math.min(5, Math.max(1, scaleFactor.value - Math.sign(e.deltaY) * props.zoomSpeed))
-    const box = imageRefs.value[targetIndex.value]
+    const box = imageRefs.value![targetIndex.value]
     const ratio = scaleFactor.value / lastScale
     box.centerPosition.x += Math.round((e.clientX - box.centerPosition.x) * (1 - ratio))
     box.centerPosition.y += Math.round((e.clientY - box.centerPosition.y) * (1 - ratio))
@@ -336,7 +356,38 @@ const handleWheel = (e: WheelEvent) => {
         box.reSetImageStatus()
     }
 }
+const setUl = (x: number, y: number, duration: number = props.duration) => {
+    ulStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: duration }])
+    ulStyle.value.transform = `translate(${-(x)}px, ${y}px)`
+}
+const prev = () => {
+    if(targetIndex.value === 0) return
+    initScale()
+    imageRefs.value![targetIndex.value].reSetImageStatus()
+    targetIndex.value--
+    setUl(targetIndex.value * window.innerWidth, 0)
+
+}
+const next = () => {
+    if(targetIndex.value == props.images.length - 1) return
+    initScale()
+    imageRefs.value![targetIndex.value].reSetImageStatus()
+    targetIndex.value++
+    setUl(targetIndex.value * window.innerWidth, 0)
+}
+const checkIfMobile = () => {
+    isMobile.value = /android|iPad|iPhone|iPod/.test(navigator.userAgent)
+}
+const initScale = () => {
+    scaleFactor.value = 1
+    initialScale = 1
+    lastScale = 1
+    initialDistance = 0
+    afterOffset.x = 0
+    afterOffset.y = 0
+}
 onBeforeMount(() => {
+    checkIfMobile()
     document.addEventListener('mouseup', handleIsMouseOverWindow, { passive: false })
     document.addEventListener('touchend', handleIsMouseOverWindow, { passive: false })
     window.addEventListener('resize', handleResize, { passive: false })
@@ -349,7 +400,7 @@ onMounted(() => {
     }
     if(!mask.value) return
     window.requestAnimationFrame(() => maskStyle.value.backgroundColor = maskBackgroundColor(1))
-
+    nextTick(() => targetRef.open())
 })
 onBeforeUnmount(() => {
     document.removeEventListener('mouseup', handleIsMouseOverWindow)
@@ -357,12 +408,14 @@ onBeforeUnmount(() => {
     window.removeEventListener('resize', handleResize)
     document.body.style.overflow = ''
 })
+watch(() => targetIndex.value, e => {
+    nextTick(() => {
+        if(imageRefs.value == null || imageRefs.value?.length === 0) return
+        targetRef = imageRefs.value[e]
+    })
+}, { immediate: true })
 //返回mask的背景颜色设置
 const maskBackgroundColor = (value: number): string => `rgba(0, 0, 0, ${value})`
-const setUl = (x: number, y: number) => {
-    ulStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
-    ulStyle.value.transform = `translate(${-(x)}px, ${y}px)`
-}
 </script>
 <style lang="scss" scoped>
 .image-view-mask {
@@ -425,6 +478,47 @@ const setUl = (x: number, y: number) => {
                 transform: translate(-50%, -50%) rotate(-45deg);
             }
         }
+    }
+    .left-arrow, .right-arrow {
+        cursor: pointer;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        height: 72px;
+        width: 64px;
+        z-index: 5;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+    .left-arrow::before, .right-arrow::before {
+        position: relative;
+        content: '';
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #fff;
+    }
+    .left-arrow {
+        left: 0;
+        border-radius: 0 12px 12px 0;
+    }
+    .right-arrow {
+        right: 0;
+        border-radius: 12px 0 0 12px;
+    }
+    .left-arrow::before {
+        border-left: none;
+        border-bottom: none;
+        transform: rotate(-135deg);
+        left: 5px;
+    }
+    .right-arrow::before {
+        border-left: none;
+        border-bottom: none;
+        transform: rotate(45deg);
+        right: 5px;
     }
 }
 .image-view-mask .top-function .close:before, .image-view-mask .top-function .close:after {

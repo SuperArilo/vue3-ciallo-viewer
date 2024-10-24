@@ -3,65 +3,68 @@
     </div>
 </template>
 <script setup lang="ts">
-import {CialloItemProps} from "../type/Types"
+import {CialloItemProps, Position} from "../type/Types"
 import {BuildTransition, BuildMatrix} from "../util/PublicFunction"
-import {errorPng} from '../util/PublicData'
-import {CSSProperties, ref, watch, onBeforeMount, onMounted} from "vue"
+import {CSSProperties, ref, onBeforeMount, onMounted, inject, Ref} from "vue"
 const props = withDefaults(defineProps<CialloItemProps>(), {
     duration: 300,
     scaleFactor: 0
 })
-const emits = defineEmits(['handleRestore'])
 const viewInstance = ref<HTMLElement | null>(null)
 let
     image = new Image(),
     aspectRatio = props.rawObject.naturalWidth / props.rawObject.naturalHeight,
-    errorStatus:boolean = false,
     preInstanceRatio: any = { w: 0, h: 0 }
 //记录的图片位于屏幕上的中心坐标
-const centerPosition = { x: 0, y: 0 }
+const centerPosition: Position = { x: 0, y: 0 }
 const BoxStyle = ref<CSSProperties>({
     transform: '',
-    transition: BuildTransition.value([{ type: 'transform', duration: props.duration }])
+    transition: '',
+    opacity: '1'
 })
-const PreInitFunction = (element: HTMLImageElement): void => {
-    const windowWidth = window.innerWidth
-    const windowHeight = window.innerHeight
+const isRunning = inject<Ref<boolean>>('isRunning', ref(false))
+const PreInitFunction = (): void => {
     let width: number, height: number
-    if (element.naturalWidth > element.naturalHeight) {
-        width = Math.min(windowWidth, windowHeight * aspectRatio)
-        height = width / aspectRatio
+    if(props.rawObject.naturalWidth === 0 || props.rawObject.naturalHeight === 0) {
+        //重新设置一个宽高
+        width = props.rawObject.clientWidth
+        height = props.rawObject.clientHeight
+        aspectRatio = width / height
     } else {
-        height = Math.min(windowHeight, windowWidth / aspectRatio)
-        width = height * aspectRatio
+        if (props.rawObject.naturalWidth > props.rawObject.naturalHeight) {
+            width = Math.min(window.innerWidth, window.innerHeight * aspectRatio)
+            height = width / aspectRatio
+        } else {
+            height = Math.min(window.innerHeight, window.innerWidth / aspectRatio)
+            width = height * aspectRatio
+        }
     }
     image.style.width = `${width}px`
     image.style.height = `${height}px`
     centerPosition.x = window.innerWidth / 2 - width / 2
     centerPosition.y = window.innerHeight / 2 - height / 2
-    preInstanceRatio.w = element.width / width
-    preInstanceRatio.h = element.height / height
+    preInstanceRatio.w = props.rawObject.width / width
+    preInstanceRatio.h = props.rawObject.height / height
 }
 const reSetImageStatus = (): void => {
     BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
-    PreInitFunction(image)
+    PreInitFunction()
+    BoxStyle.value.transform = BuildMatrix(1, 0, 0, 1, centerPosition.x, centerPosition.y)
+}
+const moveToCenter = (): void => {
+    centerPosition.x = window.innerWidth / 2 - image.width / 2
+    centerPosition.y = window.innerHeight / 2 - image.height  / 2
+    BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
+    BoxStyle.value.transform = BuildMatrix(1, 0, 0, 1, centerPosition.x, centerPosition.y)
+}
+const onStartToCenter = (): void => {
+    BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
     BoxStyle.value.transform = BuildMatrix(1, 0, 0, 1, centerPosition.x, centerPosition.y)
 }
 onBeforeMount(() => {
     image.src = props.src
-    image.onload = ((event: Event) => {
-        const element = event.currentTarget as HTMLImageElement
-        if(errorStatus) {
-            aspectRatio = element.naturalWidth / element.naturalHeight
-            PreInitFunction(element)
-        }
-    })
-    image.onerror = ((e: ErrorEvent) => {
-        const element = e.currentTarget as HTMLImageElement
-        element.src = errorPng
-        errorStatus = true
-    }) as OnErrorEventHandler
-    PreInitFunction(props.rawObject)
+    PreInitFunction()
+    isRunning.value = true
     if(props.targetIndex !== props.index) return
     const preRect = props.rawObject.getBoundingClientRect()
     BoxStyle.value.transform = BuildMatrix(preInstanceRatio.w, 0, 0, preInstanceRatio.h, preRect.x, preRect.y)
@@ -70,31 +73,14 @@ onBeforeMount(() => {
 onMounted(() => {
     if(viewInstance.value == null) return
     viewInstance.value.appendChild(image)
-    const temp = () => window.requestAnimationFrame(() => BoxStyle.value.transform = BuildMatrix(1, 0, 0, 1, centerPosition.x, centerPosition.y))
-    if (image.decode) {
-        image.decoding = 'async'
-        image.decode().then(() => temp()).catch(() => temp())
-    } else {
-        temp()
-    }
-})
-watch(() => [props.x, props.y], e => {
-    if(props.isMouseDown) {
-        BoxStyle.value.transform = BuildMatrix(props.scaleFactor, 0, 0, props.scaleFactor, centerPosition.x + e[0], centerPosition.y + e[1])
-        BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: e[0] === 0 && e[1] === 0 ? props.duration:0 }])
-    }
-})
-watch(() => props.isMouseDown, e => {
-    if(!e && props.scaleFactor <= 1) {
-        centerPosition.x = window.innerWidth / 2 - image.clientWidth / 2
-        centerPosition.y = window.innerHeight / 2 - image.clientHeight  / 2
-        BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
-        BoxStyle.value.transform = BuildMatrix(1, 0, 0, 1, centerPosition.x, centerPosition.y)
-        emits('handleRestore', null)
+    if(props.targetIndex !== props.index) {
+        onStartToCenter()
     }
 })
 // 图片边界计算，放大后计算是否超出边界，缩小后是否以中心位置为基础
-const boundaryCalculation = (): void => {
+const boundaryCalculation = (x: number, y: number): void => {
+    centerPosition.x += x
+    centerPosition.y += y
     BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
     const rect = image.getBoundingClientRect()
     // X 轴边界判断
@@ -127,17 +113,40 @@ const boundaryCalculation = (): void => {
     }
     BoxStyle.value.transform = BuildMatrix(props.scaleFactor, 0, 0, props.scaleFactor, centerPosition.x, centerPosition.y)
 }
+const move = (x: number, y: number) => {
+    if(props.isMouseDown) {
+        BoxStyle.value.transform = BuildMatrix(props.scaleFactor, 0, 0, props.scaleFactor, centerPosition.x + x, centerPosition.y + y)
+        BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: x === 0 && y === 0 ? props.duration:0 }])
+    }
+}
+const open = async () => {
+    try {
+        if (image && image.decode) {
+            image.decoding = 'async'
+            await image.decode()
+        }
+        onStartToCenter()
+    } catch (error){
+        onStartToCenter()
+    } finally {
+        isRunning.value = false
+    }
+}
 const close = () => {
-    BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
+    isRunning.value = true
+    BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }, { type: 'opacity', duration:  props.duration }])
     const preRect = props.rawObject.getBoundingClientRect()
-    BoxStyle.value.transform = BuildMatrix(errorStatus ? 0.01:preInstanceRatio.w, 0, 0, errorStatus ? 0.01:preInstanceRatio.h, preRect.x, preRect.y)
+    BoxStyle.value.transform = BuildMatrix(preInstanceRatio.w, 0, 0, preInstanceRatio.h, preRect.x, preRect.y)
 }
 defineExpose({
     reSetImageStatus,
     boxStyle: BoxStyle,
     centerPosition: centerPosition,
-    close: close,
-    boundaryCalculation: boundaryCalculation
+    close,
+    move,
+    open,
+    boundaryCalculation,
+    moveToCenter
 })
 </script>
 <style lang="scss">
@@ -154,7 +163,7 @@ defineExpose({
         max-width: none;
         -webkit-user-drag: none;
         cursor: grab;
-        will-change: transform, height;
+        will-change: transform, height, opacity;
         object-fit: contain;
     }
     img:active {
