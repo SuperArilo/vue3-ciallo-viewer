@@ -1,3 +1,4 @@
+import {CSSProperties} from "vue"
 
 export interface ImageViewProps {
     open: boolean
@@ -15,6 +16,10 @@ export interface ImageItemProps {
     isMouseDown: boolean
     movementX: number | null
     movementY: number | null
+}
+export interface Position {
+    x: number
+    y: number
 }
 export interface BoundaryPosition {
     x: BoundaryStatus
@@ -40,8 +45,16 @@ export interface CialloItemProps  {
     duration?: number
     targetIndex?: number | null
     rawObject: HTMLImageElement
-    x: number
-    y: number
     scaleFactor: number
     isMouseDown: boolean
+}
+export interface CialloItemExpose {
+    reSetImageStatus: () => void
+    boxStyle: CSSProperties
+    centerPosition: Position
+    open: () => void
+    move: (x: number, y: number) => void
+    close: () => void
+    boundaryCalculation: (x: number, y: number) => void
+    moveToCenter: () => void
 }
