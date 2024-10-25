@@ -17,7 +17,8 @@
                     :index="index"
                     :src="(item as HTMLImageElement).src"
                     :duration="props.duration"
-                    :rawObject="props.images[index] as HTMLImageElement"
+                    :isRunning="isRunning"
+                    :rawObject="item as HTMLImageElement"
                     :targetIndex="targetIndex"
                     :scaleFactor="targetIndex === index ? scaleFactor: 1"
                     :isMouseDown="isMouseDown" />
@@ -47,7 +48,6 @@ const mask = ref<HTMLElement | null>(null)
 const topFunction = ref<HTMLElement | null>(null)
 const arrowLeft = ref<HTMLElement | null>(null)
 const arrowRight = ref<HTMLElement | null>(null)
-
 const maskStyle = ref<CSSProperties>({ backgroundColor: 'rgba(0, 0, 0, 0)', transition: BuildTransition.value([{ type: 'background-color', duration: props.duration }]) })
 const ulStyle = ref<CSSProperties>({ transition: `transform ${props.duration}ms`, transform: '' })
 //判断是否是 移动设备
@@ -79,19 +79,20 @@ const afterOffset: Position = { x: 0, y: 0 }
 const scaleFactor = ref<number>(1)
 //是否在运行动画
 const isRunning = ref<boolean>(false)
+//是否进入X轴滑动状态
+const isXGO = ref<boolean | null>(null)
 let
     //双指状态，第一次的间距
     initialDistance: number = 0,
     //手指保存的上一次放大倍数
     initialScale: number = 1,
-    //是否进入X轴滑动状态
-    isXGO: boolean | null = null,
     //放大过程中保存的上一次倍率
     lastScale: number = 1,
     //targetIndex ref
     targetRef: CialloItemExpose
 
 provide('isRunning', isRunning)
+provide('isXGO', isXGO)
 //恢复初始状态
 const restoreStatus = () => {
     prePosition.x = 0
@@ -121,14 +122,13 @@ const restoreStatus = () => {
             }, arrowRight.value)
         }
     })
-    if(isXGO) {
+    if(isXGO.value) {
         setUl(targetIndex.value * window.innerWidth, 0)
     } else {
         const instance = imageRefs.value![targetIndex.value]
         instance.moveToCenter()
     }
-    isXGO = null
-
+    isXGO.value = null
 }
 const commitClose = () => {
     closeStatus.value = true
@@ -197,10 +197,10 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
         yRatio = Math.abs(clampedY) / window.innerHeight
         boundaryPosition.value.x.status = xRatio >= 0.2 && yRatio <= 0.05
         boundaryPosition.value.y.status = yRatio >= 0.2 && xRatio <= 0.05
-        if(isXGO == null) {
-            isXGO = yRatio < 0.05 && e.movementX !== 0 && scaleFactor.value == 1
+        if(isXGO.value == null) {
+            isXGO.value = yRatio < 0.05 && e.movementX !== 0 && scaleFactor.value == 1
         }
-        if(!isXGO) {
+        if(!isXGO.value) {
             // 更新位置
             targetRef.move(clampedX, clampedY)
             afterOffset.x = clampedX
@@ -242,9 +242,9 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
             boundaryPosition.value.y.status = yRatio >= 0.2 && xRatio <= 0.2
             boundaryPosition.value.y.movement = clampedY
             boundaryPosition.value.x.movement = clampedX
-            if(isXGO == null) {
-                isXGO = yRatio < 0.05 && Math.abs(boundaryPosition.value.x.movement) > 5 && scaleFactor.value == 1
-            } else if(!isXGO) {
+            if(isXGO.value == null) {
+                isXGO.value = yRatio < 0.05 && Math.abs(boundaryPosition.value.x.movement) > 5 && scaleFactor.value == 1
+            } else if(!isXGO.value) {
                 // 更新位置
                 targetRef.move(clampedX, clampedY)
                 if(scaleFactor.value == 1) {
@@ -259,7 +259,7 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
                 ulStyle.value.transition = ''
                 ulStyle.value.transform = `translate(${-(targetIndex.value * window.innerWidth - clampedX)}px, 0px)`
             }
-        } else if(a.length == 2 && !isXGO) {
+        } else if(a.length == 2 && !isXGO.value) {
             const touch1 = a[0]
             const touch2 = a[1]
             if(initialDistance == 0) return
@@ -287,14 +287,19 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
 }
 const handleUpEvent = (e: MouseEvent | TouchEvent): void => {
     if(closeStatus.value || isRunning.value) return
-    if(isXGO) {
-        if(boundaryPosition.value.x.movement! < 0 && targetIndex.value >= 0 && props.images.length > 0 && targetIndex.value + 1 < props.images.length) {
-            next()
-        } else if(boundaryPosition.value.x.movement! > 0 && targetIndex.value > 0) {
-            prev()
+    if(isXGO.value) {
+        if(boundaryPosition.value.x.status) {
+            if(boundaryPosition.value.x.movement! < 0 && targetIndex.value >= 0 && props.images.length > 0 && targetIndex.value + 1 < props.images.length) {
+                next()
+            } else if(boundaryPosition.value.x.movement! > 0 && targetIndex.value > 0) {
+                prev()
+            } else {
+                restoreStatus()
+            }
         } else {
             restoreStatus()
         }
+        isXGO.value = null
     } else {
         if(scaleFactor.value === 1 && boundaryPosition.value.y.status && !boundaryPosition.value.x.status) {
             commitClose()
@@ -303,6 +308,7 @@ const handleUpEvent = (e: MouseEvent | TouchEvent): void => {
                 restoreStatus()
             }
         }
+        isXGO.value = null
     }
     const instance = imageRefs.value![targetIndex.value]
     if(scaleFactor.value > 1) {
@@ -314,10 +320,8 @@ const handleUpEvent = (e: MouseEvent | TouchEvent): void => {
         initScale()
     }
     isMouseDown.value = false
-    isXGO = null
     boundaryPosition.value.x.status = false
     boundaryPosition.value.y.status = false
-    boundaryPosition.value.x.movement = null
     boundaryPosition.value.y.movement = null
 }
 //检查鼠标是否移动到文档外
@@ -337,7 +341,7 @@ const handleResize = () => {
 }
 const handleWheel = (e: WheelEvent) => {
     e.preventDefault()
-    if((e.target as HTMLImageElement).localName !== 'img' || isRunning.value || isXGO) return
+    if((e.target as HTMLImageElement).localName !== 'img' || isRunning.value || isXGO.value) return
     scaleFactor.value = Math.min(5, Math.max(1, scaleFactor.value - Math.sign(e.deltaY) * props.zoomSpeed))
     const box = imageRefs.value![targetIndex.value]
     const ratio = scaleFactor.value / lastScale
@@ -412,6 +416,7 @@ watch(() => targetIndex.value, e => {
     nextTick(() => {
         if(imageRefs.value == null || imageRefs.value?.length === 0) return
         targetRef = imageRefs.value[e]
+        isXGO.value = null
     })
 }, { immediate: true })
 //返回mask的背景颜色设置

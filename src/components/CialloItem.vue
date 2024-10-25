@@ -15,6 +15,7 @@ let
     image = new Image(),
     aspectRatio = props.rawObject.naturalWidth / props.rawObject.naturalHeight,
     preInstanceRatio: any = { w: 0, h: 0 }
+
 //记录的图片位于屏幕上的中心坐标
 const centerPosition: Position = { x: 0, y: 0 }
 const BoxStyle = ref<CSSProperties>({
@@ -23,6 +24,7 @@ const BoxStyle = ref<CSSProperties>({
     opacity: '1'
 })
 const isRunning = inject<Ref<boolean>>('isRunning', ref(false))
+const isXGO = inject<Ref<boolean | null>>('isXGO', ref(null))
 const PreInitFunction = (): void => {
     let width: number, height: number
     if(props.rawObject.naturalWidth === 0 || props.rawObject.naturalHeight === 0) {
@@ -84,19 +86,25 @@ const boundaryCalculation = (x: number, y: number): void => {
     BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
     const rect = image.getBoundingClientRect()
     // X 轴边界判断
+
     if (rect.width > window.innerWidth) {
         // 如果图片超出屏幕宽度
         if (rect.x > 0) {
             // 判断图片左侧是否超出左边界
             centerPosition.x = 0
+            // isXGO.value = true
         } else if (rect.right < window.innerWidth) {
             // 判断图片右侧是否超出右边界
             centerPosition.x = window.innerWidth - rect.width
+            // isXGO.value = true
+        } else {
+            // isXGO.value = false
         }
     } else {
         // 图片宽度小于屏幕宽度时，居中处理
         centerPosition.x = window.innerWidth / 2 - rect.width / 2
     }
+    console.log(isXGO.value)
     // // Y 轴边界判断
     if (rect.height > window.innerHeight) {
         // 如果图片超出屏幕高度
@@ -120,16 +128,19 @@ const move = (x: number, y: number) => {
     }
 }
 const open = async () => {
-    try {
-        if (image && image.decode) {
-            image.decoding = 'async'
-            await image.decode()
+    image.onload = async (e: Event) => {
+        const t = e.target as HTMLImageElement
+        try {
+            if (t && t.decode) {
+                t.decoding = 'async'
+                await t.decode()
+            }
+            onStartToCenter()
+        } catch (error) {
+            onStartToCenter()
+        } finally {
+            isRunning.value = false
         }
-        onStartToCenter()
-    } catch (error){
-        onStartToCenter()
-    } finally {
-        isRunning.value = false
     }
 }
 const close = () => {
