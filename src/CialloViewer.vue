@@ -237,7 +237,7 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
             // 计算比例
             xRatio = Math.abs(clampedX) / window.innerWidth
             yRatio = Math.abs(clampedY) / window.innerHeight
-            boundaryPosition.value.x.status = xRatio >= 0.3 && yRatio <= 0.05
+            boundaryPosition.value.x.status = xRatio >= 0.2 && yRatio <= 0.05
             boundaryPosition.value.y.status = yRatio >= 0.2 && xRatio <= 0.2
             boundaryPosition.value.y.movement = clampedY
             boundaryPosition.value.x.movement = clampedX
