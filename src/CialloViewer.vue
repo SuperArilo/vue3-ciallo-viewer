@@ -29,7 +29,6 @@
                 <span>{{ targetIndex + 1 }}</span>
                 <span>/</span>
                 <span>{{imageRefs?.length}}</span>
-                <span>{{scaleFactor}}</span>
             </div>
             <div class="close" @click="commitClose" @touchstart.passive="commitClose"></div>
         </div>
@@ -128,7 +127,7 @@ const restoreStatus = () => {
         const instance = imageRefs.value![targetIndex.value]
         instance.moveToCenter()
     }
-    isXGO.value = null
+    isXGO.value = false
 }
 const commitClose = () => {
     closeStatus.value = true
@@ -195,17 +194,17 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
         // 计算比例
         xRatio = Math.abs(clampedX) / window.innerWidth
         yRatio = Math.abs(clampedY) / window.innerHeight
-        boundaryPosition.value.x.status = xRatio >= 0.2 && yRatio <= 0.05
-        boundaryPosition.value.y.status = yRatio >= 0.2 && xRatio <= 0.05
+        boundaryPosition.value.x.status = xRatio >= 0.3 && yRatio <= 0.05
+        boundaryPosition.value.y.status = yRatio >= 0.3 && xRatio <= 0.05
         if(isXGO.value == null) {
-            isXGO.value = yRatio < 0.05 && e.movementX !== 0 && scaleFactor.value == 1
+            isXGO.value = yRatio < 0.05 && e.movementX !== 0 && scaleFactor.value === 1
         }
         if(!isXGO.value) {
             // 更新位置
             targetRef.move(clampedX, clampedY)
             afterOffset.x = clampedX
             afterOffset.y = clampedY
-            boundaryPosition.value.y.movement = e.movementY
+            boundaryPosition.value.y.movement = clampedY
             if(scaleFactor.value == 1) {
                 window.requestAnimationFrame(() => {
                     maskStyle.value.backgroundColor = maskBackgroundColor(1 - yRatio)
@@ -223,7 +222,7 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
         } else {
             boundaryPosition.value.x.status = xRatio >= 0.2 && yRatio <= 0.05
             boundaryPosition.value.y.status = yRatio >= 0.2 && xRatio <= 0.2
-            boundaryPosition.value.x.movement = e.movementX
+            boundaryPosition.value.x.movement = clampedX
             ulStyle.value.transition = ''
             ulStyle.value.transform = `translate(${-(targetIndex.value * window.innerWidth - clampedX)}px, 0px)`
         }
@@ -238,7 +237,7 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
             // 计算比例
             xRatio = Math.abs(clampedX) / window.innerWidth
             yRatio = Math.abs(clampedY) / window.innerHeight
-            boundaryPosition.value.x.status = xRatio >= 0.2 && yRatio <= 0.05
+            boundaryPosition.value.x.status = xRatio >= 0.3 && yRatio <= 0.05
             boundaryPosition.value.y.status = yRatio >= 0.2 && xRatio <= 0.2
             boundaryPosition.value.y.movement = clampedY
             boundaryPosition.value.x.movement = clampedX
@@ -299,7 +298,6 @@ const handleUpEvent = (e: MouseEvent | TouchEvent): void => {
         } else {
             restoreStatus()
         }
-        isXGO.value = null
     } else {
         if(scaleFactor.value === 1 && boundaryPosition.value.y.status && !boundaryPosition.value.x.status) {
             commitClose()
