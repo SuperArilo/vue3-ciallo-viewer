@@ -48,7 +48,7 @@ const topFunction = ref<HTMLElement | null>(null)
 const arrowLeft = ref<HTMLElement | null>(null)
 const arrowRight = ref<HTMLElement | null>(null)
 const maskStyle = ref<CSSProperties>({ backgroundColor: 'rgba(0, 0, 0, 0)', transition: BuildTransition.value([{ type: 'background-color', duration: props.duration }]) })
-const ulStyle = ref<CSSProperties>({ transition: `transform ${props.duration}ms`, transform: '' })
+const ulStyle = ref<CSSProperties>({ transition: BuildTransition.value([{ type: 'transform', duration: props.duration }]), transform: '' })
 //判断是否是 移动设备
 const isMobile = ref<boolean>(false)
 //imagesRefs 列表，用于获取里面的更新图片的宽高方法

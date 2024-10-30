@@ -4,7 +4,7 @@
     "description": "适用于vue3的图片浏览组件",
     "main": "vue3-ciallo-viewer.mjs",
     "module": "dist/vue3-ciallo-viewer.umd.js",
-    "types": "./dist/index.d.ts",
+    "types": "module",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/SuperArilo/vue3-ciallo-viewer.git"
