@@ -1,19 +1,40 @@
-import {createVNode, render} from 'vue'
+import {createVNode, render, VNode} from 'vue'
 import ListViewer from "./CialloViewer.vue"
+import {ListViewerProps} from "./type/Types"
 let container: HTMLElement
-export const CialloViewer = (
+export function CialloViewer(
     array: HTMLCollection,
-    targetIndex: number | null = 0,
+    targetIndex: number,
+    duration: number,
+    zoomSpeed: number,
+    maxScaleFactor: number): void
+export function CialloViewer(obj: ListViewerProps): void
+export function CialloViewer (
+    arg1: HTMLCollection | ListViewerProps,
+    targetIndex: number = 0,
     duration: number = 400,
-    zoomSpeed: number = 0.2): void => {
-    if(array.length == 0) return
-    if(container == null) {
+    zoomSpeed: number = 0.2,
+    maxScaleFactor: number = 5): void {
+    let vNode: VNode
+    if (typeof arg1 === "object" && "array" in arg1) {
+        if(arg1.array.length === 0) return
+        vNode = createVNode(ListViewer,{ array: arg1.array, targetIndex: arg1.targetIndex, duration: arg1.duration, zoomSpeed: arg1.zoomSpeed, maxScaleFactor: arg1.maxScaleFactor })
+
+    } else if (arg1 instanceof HTMLCollection) {
+        if(arg1.length === 0) return
+        vNode = createVNode(ListViewer,{ array: arg1, targetIndex: targetIndex, duration: duration, zoomSpeed: zoomSpeed, maxScaleFactor: maxScaleFactor })
+    } else {
+        throw new Error("Invalid arguments")
+    }
+    render(vNode, getContainer())
+}
+export const UnmountTargetViewer = (): void => render(null, container)
+function getContainer(): HTMLElement {
+    if (!container) {
         container = document.createElement('div')
-        container.setAttribute("type", 'ciallo-viewer')
+        container.setAttribute("type", "ciallo-viewer")
         container.setAttribute('id', `ciallo-viewer-${(Math.random() * 100000).toFixed(0)}`)
         document.body.appendChild(container)
     }
-    const vNode = createVNode(ListViewer,{ images: array, targetIndex: targetIndex, duration: duration, zoomSpeed: zoomSpeed })
-    render(vNode, container)
+    return container
 }
-export const UnmountTargetViewer = (): void => render(null, container)

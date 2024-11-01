@@ -11,7 +11,7 @@
         @touchend.prevent="handleUpEvent"
         @wheel.prevent="handleWheel">
         <ul :style="ulStyle">
-            <li v-for="(item, index) in props.images" :key="index">
+            <li v-for="(item, index) in props.array" :key="index">
                 <CialloItem
                     ref="imageRefs"
                     :index="index"
@@ -33,7 +33,7 @@
             <div class="close" @click="commitClose" @touchstart.passive="commitClose"></div>
         </div>
         <div ref="arrowLeft" v-if="targetIndex !== 0 && !isMobile" class="left-arrow" @click="prev()"></div>
-        <div ref="arrowRight" v-if="targetIndex !== (props.images.length - 1) && !isMobile" class="right-arrow" @click="next()"></div>
+        <div ref="arrowRight" v-if="targetIndex !== (props.array?.length - 1) && !isMobile" class="right-arrow" @click="next()"></div>
     </div>
 </template>
 <script setup lang="ts">
@@ -42,7 +42,7 @@ import {CSSProperties, nextTick, onBeforeMount, onBeforeUnmount, onMounted, prov
 import CialloItem from "./components/CialloItem.vue"
 import {BuildMatrix, BuildTransition, SetElementStyle} from "./util/PublicFunction"
 import {UnmountTargetViewer} from "./index"
-const props = withDefaults(defineProps<ListViewerProps>(), { duration: 300, targetIndex: 0 })
+const props = withDefaults(defineProps<ListViewerProps>(), { duration: 300, targetIndex: 0, maxScaleFactor: 5 })
 const mask = ref<HTMLElement | null>(null)
 const topFunction = ref<HTMLElement | null>(null)
 const arrowLeft = ref<HTMLElement | null>(null)
@@ -194,8 +194,8 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
         // 计算比例
         xRatio = Math.abs(clampedX) / window.innerWidth
         yRatio = Math.abs(clampedY) / window.innerHeight
-        boundaryPosition.value.x.status = xRatio >= 0.3 && yRatio <= 0.05
-        boundaryPosition.value.y.status = yRatio >= 0.3 && xRatio <= 0.05
+        boundaryPosition.value.x.status = xRatio >= 0.2 && yRatio <= 0.05
+        boundaryPosition.value.y.status = yRatio >= 0.2 && xRatio <= 0.05
         if(isXGO.value == null) {
             isXGO.value = yRatio < 0.05 && e.movementX !== 0 && scaleFactor.value === 1
         }
@@ -220,8 +220,6 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
                 })
             }
         } else {
-            boundaryPosition.value.x.status = xRatio >= 0.2 && yRatio <= 0.05
-            boundaryPosition.value.y.status = yRatio >= 0.2 && xRatio <= 0.2
             boundaryPosition.value.x.movement = clampedX
             ulStyle.value.transition = ''
             ulStyle.value.transform = `translate(${-(targetIndex.value * window.innerWidth - clampedX)}px, 0px)`
@@ -255,7 +253,9 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
                     })
                 }
             } else {
-                ulStyle.value.transition = ''
+                if(ulStyle.value.transition !== '') {
+                    ulStyle.value.transition = ''
+                }
                 ulStyle.value.transform = `translate(${-(targetIndex.value * window.innerWidth - clampedX)}px, 0px)`
             }
         } else if(a.length == 2 && !isXGO.value) {
@@ -264,7 +264,7 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
             if(initialDistance == 0) return
             // 计算当前两指的距离比值
             const value = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY) / initialDistance
-            scaleFactor.value = Math.max(0.5, Math.min(5, initialScale * value))
+            scaleFactor.value = Math.max(0.5, Math.min(props.maxScaleFactor, initialScale * value))
             const centerX = (touch1.clientX + touch2.clientX) / 2
             const centerY = (touch1.clientY + touch2.clientY) / 2
             const box = imageRefs.value![targetIndex.value]
@@ -288,7 +288,7 @@ const handleUpEvent = (e: MouseEvent | TouchEvent): void => {
     if(closeStatus.value || isRunning.value) return
     if(isXGO.value) {
         if(boundaryPosition.value.x.status) {
-            if(boundaryPosition.value.x.movement! < 0 && targetIndex.value >= 0 && props.images.length > 0 && targetIndex.value + 1 < props.images.length) {
+            if(boundaryPosition.value.x.movement! < 0 && targetIndex.value >= 0 && props.array.length > 0 && targetIndex.value + 1 < props.array.length) {
                 next()
             } else if(boundaryPosition.value.x.movement! > 0 && targetIndex.value > 0) {
                 prev()
@@ -340,7 +340,7 @@ const handleResize = () => {
 const handleWheel = (e: WheelEvent) => {
     e.preventDefault()
     if((e.target as HTMLImageElement).localName !== 'img' || isRunning.value || isXGO.value) return
-    scaleFactor.value = Math.min(5, Math.max(1, scaleFactor.value - Math.sign(e.deltaY) * props.zoomSpeed))
+    scaleFactor.value = Math.min(props.maxScaleFactor, Math.max(1, scaleFactor.value - Math.sign(e.deltaY) * props.zoomSpeed))
     const box = imageRefs.value![targetIndex.value]
     const ratio = scaleFactor.value / lastScale
     box.centerPosition.x += Math.round((e.clientX - box.centerPosition.x) * (1 - ratio))
@@ -371,7 +371,7 @@ const prev = () => {
 
 }
 const next = () => {
-    if(targetIndex.value == props.images.length - 1) return
+    if(targetIndex.value == props.array.length - 1) return
     initScale()
     imageRefs.value![targetIndex.value].reSetImageStatus()
     targetIndex.value++
@@ -401,8 +401,11 @@ onMounted(() => {
         targetIndex.value = 0
     }
     if(!mask.value) return
-    window.requestAnimationFrame(() => maskStyle.value.backgroundColor = maskBackgroundColor(1))
-    nextTick(() => targetRef.open())
+    window.requestAnimationFrame(() => {
+        maskStyle.value.backgroundColor = maskBackgroundColor(1)
+        nextTick(() => targetRef.open())
+    })
+
 })
 onBeforeUnmount(() => {
     document.removeEventListener('mouseup', handleIsMouseOverWindow)

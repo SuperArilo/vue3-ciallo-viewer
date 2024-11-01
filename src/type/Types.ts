@@ -1,22 +1,5 @@
 import {CSSProperties} from "vue"
 
-export interface ImageViewProps {
-    open: boolean
-    images: Array<string>
-    duration?: number
-    targetIndex?: number
-}
-export interface ImageItemProps {
-    src: string
-    closeStatus?: boolean
-    duration?: number,
-    x?: number
-    y?: number
-    scaleFactor: number
-    isMouseDown: boolean
-    movementX: number | null
-    movementY: number | null
-}
 export interface Position {
     x: number
     y: number
@@ -33,11 +16,12 @@ export interface BuildTransitionType {
     type: string
     duration: number
 }
-export interface ListViewerProps {
-    images: HTMLCollection
-    targetIndex?: number
-    duration?: number
+export interface ListViewerProps  {
+    array: HTMLCollection
+    targetIndex: number
+    duration: number
     zoomSpeed: number
+    maxScaleFactor: number
 }
 export interface CialloItemProps  {
     src: string

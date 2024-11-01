@@ -86,18 +86,19 @@ const boundaryCalculation = (x: number, y: number): void => {
     BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
     const rect = image.getBoundingClientRect()
     // X 轴边界判断
+    console.log(y)
     if (rect.width > window.innerWidth) {
         // 如果图片超出屏幕宽度
         if (rect.x > 0) {
             // 判断图片左侧是否超出左边界
             centerPosition.x = 0
-            if(isXGO.value == null) {
+            if(isXGO.value == null && Math.abs(y) < 5) {
                 isXGO.value = true
             }
         } else if (rect.right < window.innerWidth) {
             // 判断图片右侧是否超出右边界
             centerPosition.x = window.innerWidth - rect.width
-            if(isXGO.value == null) {
+            if(isXGO.value == null && Math.abs(y) < 5) {
                 isXGO.value = true
             }
         } else {
@@ -114,10 +115,13 @@ const boundaryCalculation = (x: number, y: number): void => {
         if (rect.y > 0) {
             // 判断图片顶部是否超出上边界
             centerPosition.y = 0
+            isXGO.value = null
         } else if (rect.bottom <= window.innerHeight) {
             // 判断图片底部是否超出下边界
             centerPosition.y = window.innerHeight - rect.height
+            isXGO.value = null
         }
+
     } else {
         // 图片高度小于屏幕高度时，居中处理
         centerPosition.y = window.innerHeight / 2 - rect.height / 2
