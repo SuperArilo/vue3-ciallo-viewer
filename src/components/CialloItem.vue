@@ -108,7 +108,7 @@ const boundaryCalculation = (x: number, y: number): void => {
     } else {
         // 图片宽度小于屏幕宽度时，居中处理
         centerPosition.x = (window.innerWidth - rect.width) / 2
-        isXGO.value = xAbs > 0 && isXGO.value === null ? true : null
+        isXGO.value = xAbs > 20 && isXGO.value === null ? true : null
     }
     // // Y 轴边界判断
     if (rect.height > window.innerHeight) {
