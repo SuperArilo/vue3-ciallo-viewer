@@ -97,8 +97,7 @@ const restoreStatus = () => {
     prePosition.x = 0
     prePosition.y = 0
     isMouseDown.value = false
-    afterOffset.x = 0
-    afterOffset.y = 0
+    initScale()
     window.requestAnimationFrame(() => {
         maskStyle.value.backgroundColor = maskBackgroundColor(1)
         maskStyle.value.transition = BuildTransition.value([{ type: 'background-color', duration: props.duration }])
