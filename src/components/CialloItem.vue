@@ -43,8 +43,8 @@ const PreInitFunction = (): void => {
     }
     image.style.width = `${width}px`
     image.style.height = `${height}px`
-    centerPosition.x = window.innerWidth / 2 - width / 2
-    centerPosition.y = window.innerHeight / 2 - height / 2
+    centerPosition.x = (window.innerWidth - width) / 2
+    centerPosition.y = (window.innerHeight - height) / 2
     preInstanceRatio.w = props.rawObject.width / width
     preInstanceRatio.h = props.rawObject.height / height
 }
@@ -54,8 +54,8 @@ const reSetImageStatus = (): void => {
     BoxStyle.value.transform = BuildMatrix(1, 0, 0, 1, centerPosition.x, centerPosition.y)
 }
 const moveToCenter = (): void => {
-    centerPosition.x = window.innerWidth / 2 - image.width / 2
-    centerPosition.y = window.innerHeight / 2 - image.height  / 2
+    centerPosition.x = (window.innerWidth - image.width) / 2
+    centerPosition.y = (window.innerHeight - image.height) / 2
     BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
     BoxStyle.value.transform = BuildMatrix(1, 0, 0, 1, centerPosition.x, centerPosition.y)
 }
@@ -85,20 +85,21 @@ const boundaryCalculation = (x: number, y: number): void => {
     centerPosition.y += y
     BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
     const rect = image.getBoundingClientRect()
+    const yAbs = Math.abs(y)
+    const xAbs = Math.abs(x)
     // X 轴边界判断
-    console.log(y)
     if (rect.width > window.innerWidth) {
         // 如果图片超出屏幕宽度
         if (rect.x > 0) {
             // 判断图片左侧是否超出左边界
             centerPosition.x = 0
-            if(isXGO.value == null && Math.abs(y) < 5) {
+            if(isXGO.value == null && yAbs < 10) {
                 isXGO.value = true
             }
         } else if (rect.right < window.innerWidth) {
             // 判断图片右侧是否超出右边界
             centerPosition.x = window.innerWidth - rect.width
-            if(isXGO.value == null && Math.abs(y) < 5) {
+            if(isXGO.value == null && yAbs < 10) {
                 isXGO.value = true
             }
         } else {
@@ -106,9 +107,9 @@ const boundaryCalculation = (x: number, y: number): void => {
         }
     } else {
         // 图片宽度小于屏幕宽度时，居中处理
-        centerPosition.x = window.innerWidth / 2 - rect.width / 2
+        centerPosition.x = (window.innerWidth - rect.width) / 2
+        isXGO.value = xAbs > 0 && isXGO.value === null ? true : null
     }
-
     // // Y 轴边界判断
     if (rect.height > window.innerHeight) {
         // 如果图片超出屏幕高度
@@ -124,7 +125,7 @@ const boundaryCalculation = (x: number, y: number): void => {
 
     } else {
         // 图片高度小于屏幕高度时，居中处理
-        centerPosition.y = window.innerHeight / 2 - rect.height / 2
+        centerPosition.y = (window.innerHeight - rect.height) / 2
     }
     BoxStyle.value.transform = BuildMatrix(props.scaleFactor, 0, 0, props.scaleFactor, centerPosition.x, centerPosition.y)
 }
