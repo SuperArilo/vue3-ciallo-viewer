@@ -2,12 +2,25 @@ import {createVNode, render, VNode} from 'vue'
 import ListViewer from "./CialloViewer.vue"
 import {ListViewerProps} from "./type/Types"
 let container: HTMLElement
+
+/**
+ * @deprecated
+ * @param array img HTMLCollection
+ * @param targetIndex 目标索引
+ * @param duration 过度时间 ms
+ * @param zoomSpeed 缩放因子
+ * @param maxScaleFactor 最大缩放倍数
+*/
 export function CialloViewer(
     array: HTMLCollection,
     targetIndex: number,
     duration: number,
     zoomSpeed: number,
     maxScaleFactor: number): void
+/**
+ * @param obj
+ * @constructor
+ */
 export function CialloViewer(obj: ListViewerProps): void
 export function CialloViewer (
     arg1: HTMLCollection | ListViewerProps,

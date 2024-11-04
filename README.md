@@ -18,10 +18,25 @@ npm install vue3-ciallo-viewer --save
 
 ### CialloViewer
 
+#### Parameter List (Deprecated):
 ```
-CialloViewer(array: HTMLCollection, targetIndex?: number | null, duration?: number): void
+CialloViewer(
+    array: HTMLCollection,
+    targetIndex?: number | null,
+    duration: number,
+    zoomSpeed: number,
+    maxScaleFactor: number)
 ```
-
+#### Configuration Object:
+```
+CialloViewer({
+    array: HTMLCollection,
+    targetIndex: number | null,
+    duration: number,
+    zoomSpeed: number,
+    maxScaleFactor: number
+})
+```
 ##### Parameters
 
 * **array** : `HTMLCollection`
@@ -29,23 +44,11 @@ CialloViewer(array: HTMLCollection, targetIndex?: number | null, duration?: numb
 * **targetIndex** : `number | null` (optional)
   The index of the image to highlight, defaults to `0`.
 * **duration** : `number` (optional)
-  The duration of the image transition, defaults to `400` milliseconds.
-
-##### Return Value
-
-### UnmountTargetViewer
-
-```
-UnmountTargetViewer(): void
-```
-
-#### Description
-
-The `UnmountTargetViewer` function unmounts the current image viewer.
-
-#### Return Value
-
-`void` - This function does not return any value.
+  The duration of the image transition, in milliseconds. Defaults to `400`.
+* **zoomSpeed** : `number` (optional)
+  Controls the speed of zoom interactions. Defaults to `0.2` if not specified.
+* **maxScaleFactor** : `number` (optional)
+  Sets the maximum scale factor for zooming. Defaults to `5`
 
 ## API Basic usage
 
@@ -78,12 +81,18 @@ const list = ref<any[]>([
 const images = ref<HTMLElement>()
 const handleClick = (index: number): void => {
     if(!images.value) return
-    CialloViewer(images.value.getElementsByTagName('img'), index, 400)
+    // Deprecated
+    CialloViewer(images.value.getElementsByTagName('img'), index, 400, 0.2, 5)
+    // or
+    CialloViewer({
+        array: images.value.getElementsByTagName('img'),
+        targetIndex: index,
+        duration: 400,
+        zoomSpeed: 0.2,
+        maxScaleFactor: 20
+    })
 }
 </script>
-<style>
-</style>
-
 ```
 
 [npm-image]: https://img.shields.io/npm/v/vue3-ciallo-viewer.svg?style=flat-square
