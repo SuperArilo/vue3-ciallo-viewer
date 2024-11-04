@@ -130,10 +130,8 @@ const boundaryCalculation = (x: number, y: number): void => {
     BoxStyle.value.transform = BuildMatrix(props.scaleFactor, 0, 0, props.scaleFactor, centerPosition.x, centerPosition.y)
 }
 const move = (x: number, y: number) => {
-    if(props.isMouseDown) {
-        BoxStyle.value.transform = BuildMatrix(props.scaleFactor, 0, 0, props.scaleFactor, centerPosition.x + x, centerPosition.y + y)
-        BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: x === 0 && y === 0 ? props.duration:0 }])
-    }
+    BoxStyle.value.transform = BuildMatrix(props.scaleFactor, 0, 0, props.scaleFactor, centerPosition.x + x, centerPosition.y + y)
+    BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: x === 0 && y === 0 ? props.duration:0 }])
 }
 const open = async () => {
     image.onload = async (e: Event) => {
