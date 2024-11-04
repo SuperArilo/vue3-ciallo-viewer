@@ -93,13 +93,13 @@ const boundaryCalculation = (x: number, y: number): void => {
         if (rect.x > 0) {
             // 判断图片左侧是否超出左边界
             centerPosition.x = 0
-            if(isXGO.value == null && yAbs < 10) {
+            if(isXGO.value == null && yAbs < 20) {
                 isXGO.value = true
             }
         } else if (rect.right < window.innerWidth) {
             // 判断图片右侧是否超出右边界
             centerPosition.x = window.innerWidth - rect.width
-            if(isXGO.value == null && yAbs < 10) {
+            if(isXGO.value == null && yAbs < 20) {
                 isXGO.value = true
             }
         } else {
