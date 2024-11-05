@@ -1,11 +1,11 @@
 <template>
-    <div class="view_instance_0721" :style="BoxStyle" ref="viewInstance">
+    <div class="view_instance_0721" ref="viewInstance">
     </div>
 </template>
 <script setup lang="ts">
 import {CialloItemProps, Position} from "../type/Types"
 import {BuildTransition, BuildMatrix} from "../util/PublicFunction"
-import {CSSProperties, ref, onBeforeMount, onMounted, inject, Ref} from "vue"
+import {ref, onBeforeMount, onMounted, inject, Ref} from "vue"
 const props = withDefaults(defineProps<CialloItemProps>(), {
     duration: 300,
     scaleFactor: 0
@@ -18,11 +18,6 @@ let
 
 //记录的图片位于屏幕上的中心坐标
 const centerPosition: Position = { x: 0, y: 0 }
-const BoxStyle = ref<CSSProperties>({
-    transform: '',
-    transition: '',
-    opacity: '1'
-})
 const isRunning = inject<Ref<boolean>>('isRunning', ref(false))
 const isXGO = inject<Ref<boolean | null>>('isXGO', ref(null))
 const PreInitFunction = (): void => {
@@ -49,31 +44,34 @@ const PreInitFunction = (): void => {
     preInstanceRatio.h = props.rawObject.height / height
 }
 const reSetImageStatus = (): void => {
-    BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
+    if(viewInstance.value == null) return
+    viewInstance.value.style.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
     PreInitFunction()
-    BoxStyle.value.transform = BuildMatrix(1, 0, 0, 1, centerPosition.x, centerPosition.y)
+    viewInstance.value.style.transform = BuildMatrix(1, 0, 0, 1, centerPosition.x, centerPosition.y)
 }
 const moveToCenter = (): void => {
+    if(viewInstance.value == null || image.width > window.innerWidth || image.height > window.innerHeight) return
     centerPosition.x = (window.innerWidth - image.width) / 2
     centerPosition.y = (window.innerHeight - image.height) / 2
-    BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
-    BoxStyle.value.transform = BuildMatrix(1, 0, 0, 1, centerPosition.x, centerPosition.y)
+    viewInstance.value.style.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
+    viewInstance.value.style.transform = BuildMatrix(1, 0, 0, 1, centerPosition.x, centerPosition.y)
 }
 const onStartToCenter = (): void => {
-    BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
-    BoxStyle.value.transform = BuildMatrix(1, 0, 0, 1, centerPosition.x, centerPosition.y)
+    if(viewInstance.value == null) return
+    viewInstance.value.style.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
+    viewInstance.value.style.transform = BuildMatrix(1, 0, 0, 1, centerPosition.x, centerPosition.y)
 }
 onBeforeMount(() => {
     image.src = props.src
     PreInitFunction()
     isRunning.value = true
-    if(props.targetIndex !== props.index) return
-    const preRect = props.rawObject.getBoundingClientRect()
-    BoxStyle.value.transform = BuildMatrix(preInstanceRatio.w, 0, 0, preInstanceRatio.h, preRect.x, preRect.y)
-
 })
 onMounted(() => {
     if(viewInstance.value == null) return
+    if(props.targetIndex === props.index) {
+        const preRect = props.rawObject.getBoundingClientRect()
+        viewInstance.value.style.transform = BuildMatrix(preInstanceRatio.w, 0, 0, preInstanceRatio.h, preRect.x, preRect.y)
+    }
     viewInstance.value.appendChild(image)
     if(props.targetIndex !== props.index) {
         onStartToCenter()
@@ -81,9 +79,10 @@ onMounted(() => {
 })
 // 图片边界计算，放大后计算是否超出边界，缩小后是否以中心位置为基础
 const boundaryCalculation = (x: number, y: number): void => {
+    if(viewInstance.value == null) return
     centerPosition.x += x
     centerPosition.y += y
-    BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
+    viewInstance.value.style.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }])
     const rect = image.getBoundingClientRect()
     const yAbs = Math.abs(y)
     const xAbs = Math.abs(x)
@@ -108,7 +107,7 @@ const boundaryCalculation = (x: number, y: number): void => {
     } else {
         // 图片宽度小于屏幕宽度时，居中处理
         centerPosition.x = (window.innerWidth - rect.width) / 2
-        isXGO.value = xAbs > 20 && isXGO.value === null ? true : null
+        isXGO.value = image.width / 2 < xAbs && isXGO.value === null ? true : null
     }
     // // Y 轴边界判断
     if (rect.height > window.innerHeight) {
@@ -127,11 +126,12 @@ const boundaryCalculation = (x: number, y: number): void => {
         // 图片高度小于屏幕高度时，居中处理
         centerPosition.y = (window.innerHeight - rect.height) / 2
     }
-    BoxStyle.value.transform = BuildMatrix(props.scaleFactor, 0, 0, props.scaleFactor, centerPosition.x, centerPosition.y)
+    viewInstance.value.style.transform = BuildMatrix(props.scaleFactor, 0, 0, props.scaleFactor, centerPosition.x, centerPosition.y)
 }
 const move = (x: number, y: number) => {
-    BoxStyle.value.transform = BuildMatrix(props.scaleFactor, 0, 0, props.scaleFactor, centerPosition.x + x, centerPosition.y + y)
-    BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: x === 0 && y === 0 ? props.duration:0 }])
+    if(viewInstance.value == null) return
+    viewInstance.value.style.transform = BuildMatrix(props.scaleFactor, 0, 0, props.scaleFactor, centerPosition.x + x, centerPosition.y + y)
+    viewInstance.value.style.transition = BuildTransition.value([{ type: 'transform', duration: x === 0 && y === 0 ? props.duration:0 }])
 }
 const open = async () => {
     image.onload = async (e: Event) => {
@@ -150,14 +150,15 @@ const open = async () => {
     }
 }
 const close = () => {
+    if(viewInstance.value == null) return
     isRunning.value = true
-    BoxStyle.value.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }, { type: 'opacity', duration:  props.duration }])
+    viewInstance.value.style.transition = BuildTransition.value([{ type: 'transform', duration: props.duration }, { type: 'opacity', duration:  props.duration }])
     const preRect = props.rawObject.getBoundingClientRect()
-    BoxStyle.value.transform = BuildMatrix(preInstanceRatio.w, 0, 0, preInstanceRatio.h, preRect.x, preRect.y)
+    viewInstance.value.style.transform = BuildMatrix(preInstanceRatio.w, 0, 0, preInstanceRatio.h, preRect.x, preRect.y)
 }
 defineExpose({
     reSetImageStatus,
-    boxStyle: BoxStyle,
+    viewInstance: viewInstance,
     centerPosition: centerPosition,
     close,
     move,
