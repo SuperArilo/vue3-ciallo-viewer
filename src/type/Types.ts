@@ -1,4 +1,3 @@
-import {CSSProperties} from "vue"
 
 export interface Position {
     x: number
@@ -34,7 +33,7 @@ export interface CialloItemProps  {
 }
 export interface CialloItemExpose {
     reSetImageStatus: () => void
-    boxStyle: CSSProperties
+    viewInstance: HTMLElement
     centerPosition: Position
     open: () => void
     move: (x: number, y: number) => void
