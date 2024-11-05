@@ -419,7 +419,7 @@ watch(() => targetIndex.value, e => {
 //返回mask的背景颜色设置
 const maskBackgroundColor = (value: number): string => `rgba(0, 0, 0, ${value})`
 </script>
-<style lang="scss" scoped>
+<style lang="less" scoped>
 .image-view-mask {
     position: fixed;
     width: 100%;

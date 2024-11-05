@@ -167,7 +167,7 @@ defineExpose({
     moveToCenter
 })
 </script>
-<style lang="scss">
+<style lang="less">
 .view_instance_0721 {
     position: absolute;
     top: 0;
