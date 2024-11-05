@@ -97,7 +97,6 @@ const restoreStatus = () => {
     prePosition.x = 0
     prePosition.y = 0
     isMouseDown.value = false
-    initScale()
     window.requestAnimationFrame(() => {
         maskStyle.value.backgroundColor = maskBackgroundColor(1)
         maskStyle.value.transition = BuildTransition.value([{ type: 'background-color', duration: props.duration }])
@@ -252,10 +251,7 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
                     })
                 }
             } else {
-                if(ulStyle.value.transition !== '') {
-                    ulStyle.value.transition = ''
-                }
-                ulStyle.value.transform = `translate(${-(targetIndex.value * window.innerWidth - clampedX)}px, 0px)`
+                setUl(targetIndex.value * window.innerWidth - clampedX, 0, 0)
             }
         } else if(a.length == 2 && !isXGO.value) {
             const touch1 = a[0]
@@ -270,8 +266,8 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
             const ratio = scaleFactor.value / lastScale
             box.centerPosition.x += (centerX - box.centerPosition.x) * (1 - ratio)
             box.centerPosition.y += (centerY - box.centerPosition.y) * (1 - ratio)
-            box.boxStyle.transition = ''
-            box.boxStyle.transform = BuildMatrix(
+            box.viewInstance.style.transition = ''
+            box.viewInstance.style.transform = BuildMatrix(
                 scaleFactor.value,
                 0,
                 0,
@@ -325,6 +321,7 @@ const handleUpEvent = (e: MouseEvent | TouchEvent): void => {
 const handleIsMouseOverWindow = (e: MouseEvent | TouchEvent): void => {
     if(e instanceof MouseEvent && (e.clientY < 0 || e.clientY > window.innerHeight || e.clientX < 0 || e.clientX > window.innerWidth)) {
         restoreStatus()
+        initScale()
     }
 }
 //窗口变化
@@ -344,7 +341,7 @@ const handleWheel = (e: WheelEvent) => {
     const ratio = scaleFactor.value / lastScale
     box.centerPosition.x += Math.round((e.clientX - box.centerPosition.x) * (1 - ratio))
     box.centerPosition.y += Math.round((e.clientY - box.centerPosition.y) * (1 - ratio))
-    box.boxStyle.transform = BuildMatrix(
+    box.viewInstance.style.transform = BuildMatrix(
         scaleFactor.value,
         0,
         0,
