@@ -335,7 +335,10 @@ const handleResize = () => {
 }
 const handleWheel = (e: WheelEvent) => {
     e.preventDefault()
-    if((e.target as HTMLImageElement).localName !== 'img' || isRunning.value || isXGO.value) return
+    if(isXGO.value) {
+        isXGO.value = false
+    }
+    if((e.target as HTMLImageElement).localName !== 'img' || isRunning.value) return
     scaleFactor.value = Math.min(props.maxScaleFactor, Math.max(1, scaleFactor.value - Math.sign(e.deltaY) * props.zoomSpeed))
     const box = imageRefs.value![targetIndex.value]
     const ratio = scaleFactor.value / lastScale

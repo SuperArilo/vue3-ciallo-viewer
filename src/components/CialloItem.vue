@@ -70,7 +70,15 @@ onMounted(() => {
     if(viewInstance.value == null) return
     if(props.targetIndex === props.index) {
         const preRect = props.rawObject.getBoundingClientRect()
-        viewInstance.value.style.transform = BuildMatrix(preInstanceRatio.w, 0, 0, preInstanceRatio.h, preRect.x, preRect.y)
+        let x:number, y: number
+        if(preRect.x === 0 && preRect.y === 0) {
+            x = (window.innerWidth - preRect.width)/ 2
+            y = (window.innerHeight - preRect.height) / 2
+        } else {
+            x = preRect.x
+            y = preRect.y
+        }
+        viewInstance.value.style.transform = BuildMatrix(preInstanceRatio.w, 0, 0, preInstanceRatio.h, x, y)
     }
     viewInstance.value.appendChild(image)
     if(props.targetIndex !== props.index) {
@@ -107,7 +115,7 @@ const boundaryCalculation = (x: number, y: number): void => {
     } else {
         // 图片宽度小于屏幕宽度时，居中处理
         centerPosition.x = (window.innerWidth - rect.width) / 2
-        isXGO.value = image.width / 2 < xAbs && isXGO.value === null ? true : null
+        isXGO.value = image.width / 4 < xAbs && isXGO.value === null && yAbs < 20 ? true : null
     }
     // // Y 轴边界判断
     if (rect.height > window.innerHeight) {
