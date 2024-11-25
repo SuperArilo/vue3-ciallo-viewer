@@ -89,7 +89,7 @@ const handleClick = (index: number): void => {
         targetIndex: index,
         duration: 400,
         zoomSpeed: 0.2,
-        maxScaleFactor: 20
+        maxScaleFactor: 10
     })
 }
 </script>
