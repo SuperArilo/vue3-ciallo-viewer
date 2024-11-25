@@ -71,7 +71,7 @@ onMounted(() => {
     if(props.targetIndex === props.index) {
         const preRect = props.rawObject.getBoundingClientRect()
         let x:number, y: number
-        if(preRect.x === 0 && preRect.y === 0) {
+        if(preRect.x === 0 && preRect.y === 0 && (props.rawObject.naturalHeight === 0 || props.rawObject.naturalWidth === 0)) {
             x = (window.innerWidth - preRect.width)/ 2
             y = (window.innerHeight - preRect.height) / 2
         } else {
@@ -146,7 +146,6 @@ const open = async () => {
         const t = e.target as HTMLImageElement
         try {
             if (t && t.decode) {
-                t.decoding = 'async'
                 await t.decode()
             }
             onStartToCenter()
@@ -155,6 +154,9 @@ const open = async () => {
         } finally {
             isRunning.value = false
         }
+    }
+    image.onerror = async () => {
+        isRunning.value = false
     }
 }
 const close = () => {
