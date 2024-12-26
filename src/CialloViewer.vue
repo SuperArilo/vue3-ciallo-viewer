@@ -219,8 +219,7 @@ const handleMoveEvent = (e: MouseEvent | TouchEvent): void => {
             }
         } else {
             boundaryPosition.value.x.movement = clampedX
-            ulStyle.value.transition = ''
-            ulStyle.value.transform = `translate(${-(targetIndex.value * window.innerWidth - clampedX)}px, 0px)`
+            setUl((targetIndex.value * window.innerWidth - clampedX), 0, 0)
         }
     } else if(e instanceof TouchEvent) {
         const a = e.touches

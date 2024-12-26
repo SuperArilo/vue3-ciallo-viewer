@@ -79,11 +79,10 @@ onMounted(() => {
             y = preRect.y
         }
         viewInstance.value.style.transform = BuildMatrix(preInstanceRatio.w, 0, 0, preInstanceRatio.h, x, y)
-    }
-    viewInstance.value.appendChild(image)
-    if(props.targetIndex !== props.index) {
+    } else {
         onStartToCenter()
     }
+    viewInstance.value.appendChild(image)
 })
 // 图片边界计算，放大后计算是否超出边界，缩小后是否以中心位置为基础
 const boundaryCalculation = (x: number, y: number): void => {
@@ -141,7 +140,7 @@ const move = (x: number, y: number) => {
     viewInstance.value.style.transform = BuildMatrix(props.scaleFactor, 0, 0, props.scaleFactor, centerPosition.x + x, centerPosition.y + y)
     viewInstance.value.style.transition = BuildTransition.value([{ type: 'transform', duration: x === 0 && y === 0 ? props.duration:0 }])
 }
-const open = async () => {
+const open = () => {
     image.onload = async (e: Event) => {
         const t = e.target as HTMLImageElement
         try {
@@ -155,7 +154,7 @@ const open = async () => {
             isRunning.value = false
         }
     }
-    image.onerror = async () => {
+    image.onerror = () => {
         isRunning.value = false
     }
 }
