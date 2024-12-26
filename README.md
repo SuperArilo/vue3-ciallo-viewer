@@ -105,6 +105,6 @@ const handleClick = (index: number): void => {
 [david-url]: https://david-dm.org/vue3-ciallo-viewer
 [node-image]: https://img.shields.io/badge/node.js-%3E=_19-green.svg?style=flat-square
 [node-url]: http://nodejs.org/download/
-[download-image]: https://img.shields.io/npm/dm/vue3-ciallo-viewer.svg?style=flat-square
+[download-image]: https://img.shields.io/npm/d18m/vue3-ciallo-viewer
 [download-url]: https://npmjs.org/package/vue3-ciallo-viewer
 [license-image]: https://img.shields.io/npm/l/vue3-ciallo-viewer.svg
