@@ -15,7 +15,62 @@
 ```bash
 npm install vue3-ciallo-viewer --save
 ```
+## Component
+### ViewerList
+```
+<ViewerList :duration="300" :zoomSpeed="0.2" :maxScaleFactor="5">
+    <img src='./assets/1.jpg' title='image' alt='' />
+</ViewerList>
+```
+##### Parameters
 
+* **duration** : `number` (optional)
+  The duration of the image transition, in milliseconds. Defaults to `400`.
+* **zoomSpeed** : `number` (optional)
+  Controls the speed of zoom interactions. Defaults to `0.2` if not specified.
+* **maxScaleFactor** : `number` (optional)
+  Sets the maximum scale factor for zooming. Defaults to `5`
+
+## Component usage
+```
+<template>
+    <div>
+        <ViewerList :duration="300" :zoomSpeed="0.2" :maxScaleFactor="5">
+            <div v-for="(item, index) in list" :key="item.id">
+                <p>
+                    <span>{{ index + 1 }}</span>
+                    <img :src="item.src"  alt=""/>
+                </p>
+            </div>
+        </ViewerList>
+    </div>
+</template>
+<script setup lang="ts">
+import {ref} from 'vue'
+import 'vue3-ciallo-viewer/dist/style.css'
+import { ViewerList } from 'vue3-ciallo-viewer'
+const list = ref<any[]>([
+    {
+        id: 0,
+        src: 'images/1.jpg'
+    },
+    {
+        id: 1,
+        src: 'images/2.jpg'
+    },
+    {
+        id: 2,
+        src: 'images/3.jpg'
+    }
+])
+</script>
+<style>
+img {
+    height: 128px;
+    width: 128px;
+}
+</style>
+```
 ## API
 
 ### CialloViewer
