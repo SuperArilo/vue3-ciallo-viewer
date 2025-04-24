@@ -15,12 +15,14 @@ export interface BuildTransitionType {
     type: string
     duration: number
 }
-export interface ListViewerProps  {
-    array: HTMLCollection
-    targetIndex: number
+export interface ComponentsViewerProps {
     duration: number
     zoomSpeed: number
     maxScaleFactor: number
+}
+export interface ListViewerProps extends ComponentsViewerProps {
+    array: HTMLCollection | Array<HTMLImageElement>
+    targetIndex: number
 }
 export interface CialloItemProps  {
     src: string
