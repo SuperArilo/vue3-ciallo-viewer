@@ -1,6 +1,7 @@
 import {createVNode, render, VNode} from 'vue'
 import ListViewer from "./CialloViewer.vue"
 import {ListViewerProps} from "./type/Types"
+export { default as ViewerList } from './ViewerList.vue'
 let container: HTMLElement
 
 /**
