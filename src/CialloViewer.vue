@@ -6,10 +6,10 @@
         @mousedown.prevent="handleDownEvent"
         @mousemove.prevent="handleMoveEvent"
         @mouseup.prevent="handleUpEvent"
-        @touchstart.prevent="handleDownEvent"
-        @touchmove.prevent="handleMoveEvent"
-        @touchend.prevent="handleUpEvent"
-        @wheel.prevent="handleWheel">
+        @touchstart.passive="handleDownEvent"
+        @touchmove.passive="handleMoveEvent"
+        @touchend.passive="handleUpEvent"
+        @wheel.passive="handleWheel">
         <ul :style="ulStyle">
             <li v-for="(item, index) in props.array" :key="index">
                 <CialloItem
@@ -158,7 +158,6 @@ const commitClose = () => {
     }, props.duration)
 }
 const handleDownEvent = (e: MouseEvent | TouchEvent): void => {
-    e.preventDefault()
     if(closeStatus.value || (e.target as HTMLElement).localName !== 'img' || isRunning.value) return
     if(e instanceof MouseEvent) {
         prePosition.x = e.x
@@ -333,7 +332,6 @@ const handleResize = () => {
     }
 }
 const handleWheel = (e: WheelEvent) => {
-    e.preventDefault()
     if(isXGO.value) {
         isXGO.value = false
     }
@@ -431,6 +429,7 @@ const maskBackgroundColor = (value: number): string => `rgba(0, 0, 0, ${value})`
     z-index: 10000;
     user-select: none;
     will-change: background-color;
+    touch-action: none;
     ul {
         width: 100%;
         height: 100%;
